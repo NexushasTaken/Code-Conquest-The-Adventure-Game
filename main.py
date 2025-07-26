@@ -1,5 +1,6 @@
 import os
 import pygame
+import pygame_menu as ui
 from supabase import create_client, Client
 
 
@@ -29,8 +30,15 @@ def main():
   text_surface = font.render("Hello, World!", True, (0, 0, 0))
   text_rect = text_surface.get_rect(center=(400, 300))
 
+  menu = ui.Menu(
+      height=300,
+      width=300,
+      title="Menu",
+      )
+
   while running:
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
       print(pygame.event.event_name(event.type))
       if event.type == pygame.QUIT:
         running = False
@@ -41,6 +49,10 @@ def main():
     screen.fill("white")
 
     screen.blit(text_surface, text_rect)
+
+    if menu.is_enabled():
+      menu.draw(screen)
+      menu.update(events)
 
     pygame.display.flip()
     clock.tick(60)
