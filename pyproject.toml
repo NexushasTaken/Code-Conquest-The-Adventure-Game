@@ -1,3 +1,6 @@
+[tool.yapf]
+indent_width = 2
+
 [tool.basedpyright]
 reportMissingTypeStubs = "none"
 reportUnusedCallResult = "none"

@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 
 
+SCREEN_SIZE=(800, 600)
+FONT_SIZE = 16
+
+
 def setup_client():
   url = os.environ.get("SUPABASE_URL")
   key = os.environ.get("SUPABASE_KEY")
@@ -24,86 +28,105 @@ def is_signed_in(client: Client):
   return client.auth.get_user() is not None
 
 
-def sign_in(client: Client, mail_input: widgets.TextInput, pass_input: widgets.TextInput, menu: ui.Menu):
-  email = mail_input.get_value()
-  password = pass_input.get_value()
+def sign_in_action(client: Client, menu: ui.Menu):
+  email_input = menu.get_widget("sign_in_mail")
+  password_input = menu.get_widget("sign_in_pass")
   label = menu.get_widget("status_label")
 
+  assert email_input and password_input and label
+
+  email = email_input.get_value()
+  password = password_input.get_value()
+
   if is_signed_in(client):
-    if label is not None:
-      label.set_title("You're already signed in.")
+    label.set_title("You're already signed in.")
     return
 
   if email == "" or password == "":
-    if label is not None:
-      label.set_title("Enter email and password")
+    label.set_title("Enter email and password")
     return
 
   client.auth.sign_in_with_password({
-    "email": email,
-    "password": password,
-    })
+      "email": email,
+      "password": password,
+  })
 
-  if label is not None:
-    label.set_title("Signed in")
+  label.set_title("Signed in")
 
 
-def sign_up(client: Client, mail_input: widgets.TextInput, pass_input: widgets.TextInput, menu: ui.Menu):
-  email = mail_input.get_value()
-  password = pass_input.get_value()
+def sign_up_action(client: Client, menu: ui.Menu):
+  email_input = menu.get_widget("sign_up_mail")
+  password_input = menu.get_widget("sign_up_pass")
   label = menu.get_widget("status_label")
 
+  assert email_input and password_input and label
+
+  email = email_input.get_value()
+  password = password_input.get_value()
+
   if email == "" or password == "":
-    if label is not None:
-      label.set_title("Enter email and password")
+    label.set_title("Enter email and password")
     return
 
   client.auth.sign_up({
-    "email": email,
-    "password": password,
-    })
+      "email": email,
+      "password": password,
+  })
 
-  if label is not None:
-    label.set_title("Signed up")
+  label.set_title("Signed up")
 
 
-def sign_out(client: Client, menu: ui.Menu):
+def sign_out_action(client: Client, menu: ui.Menu):
   label = menu.get_widget("status_label")
+  assert label
 
   if not is_signed_in(client):
-    if label is not None:
-      label.set_title("You're not currently sign-in")
+    label.set_title("You're not currently sign-in")
     return
 
   client.auth.sign_out()
 
-  if label is not None:
-    label.set_title("Signed out")
+  label.set_title("Signed out")
 
 
 def setup_auth_menu(client: Client) -> ui.Menu:
-  font_size = 16
   theme = themes.THEME_DARK
-  theme.title_font_size = font_size
+  theme.title_font_size = FONT_SIZE
 
   menu = ui.Menu(
-      height=300,
-      width=300,
+      width=SCREEN_SIZE[0],
+      height=SCREEN_SIZE[1],
       title="Menu",
       theme=theme,
-      )
+  )
 
-  label = menu.add.label("Hello, World", label_id="status_label", font_size=font_size)
+  label = menu.add.label("Authentication Menu",
+                         label_id="status_label",
+                         font_size=FONT_SIZE)
 
-  sign_in_mail = menu.add.text_input("Email: ", "example@email.com", font_size=font_size)
-  sign_in_pass = menu.add.text_input("Password: ", "password", font_size=font_size, password=False)
-  menu.add.button("Sign In", sign_in, client, sign_in_mail, sign_in_pass, menu, font_size=font_size)
+  sign_in_mail = menu.add.text_input("Email: ",
+                                     default="example@email.com",
+                                     textinput_id="sign_in_mail",
+                                     font_size=FONT_SIZE)
+  sign_in_pass = menu.add.text_input("Password: ",
+                                     default="password",
+                                     textinput_id="sign_in_pass",
+                                     font_size=FONT_SIZE,
+                                     password=False)
+  menu.add.button("Sign In", sign_in_action, client, menu, font_size=FONT_SIZE)
 
-  sign_up_mail = menu.add.text_input("Email: ", "example@email.com", font_size=font_size)
-  sign_up_pass = menu.add.text_input("Password: ", "password", font_size=font_size, password=False)
-  menu.add.button("Sign Up", sign_up, client, sign_up_mail, sign_up_pass, menu, font_size=font_size)
+  sign_up_mail = menu.add.text_input("Email: ",
+                                     default="example@email.com",
+                                     textinput_id="sign_up_mail",
+                                     font_size=FONT_SIZE)
+  sign_up_pass = menu.add.text_input("Password: ",
+                                     default="password",
+                                     textinput_id="sign_up_pass",
+                                     font_size=FONT_SIZE,
+                                     password=False)
+  menu.add.button("Sign Up", sign_up_action, client, menu, font_size=FONT_SIZE)
 
-  menu.add.button("Sign Out", sign_out, client, menu, font_size=font_size)
+  menu.add.button("Sign Out", sign_out_action, client, menu, font_size=FONT_SIZE)
   return menu
 
 
@@ -112,13 +135,9 @@ def main():
   pygame.init()
   client = setup_client()
 
-  screen = pygame.display.set_mode((800, 600))
+  screen = pygame.display.set_mode(SCREEN_SIZE)
   clock = pygame.time.Clock()
   running = True
-
-  font = pygame.Font()
-  text_surface = font.render("Hello, World!", True, (0, 0, 0))
-  text_rect = text_surface.get_rect(center=(400, 300))
 
   menu = setup_auth_menu(client)
 
@@ -133,8 +152,6 @@ def main():
 
     screen.fill("white")
 
-    screen.blit(text_surface, text_rect)
-
     if menu.is_enabled():
       menu.draw(screen)
       menu.update(events)
@@ -147,4 +164,3 @@ def main():
 
 if __name__ == "__main__":
   main()
-
