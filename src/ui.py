@@ -53,26 +53,26 @@ def setup_auth_menu(client: Client) -> ui.Menu:
       theme=theme,
   )
 
-  label = menu.add.label("Authentication Menu",
+  menu.add.label("Authentication Menu",
                          label_id="status_label",
                          font_size=FONT_SIZE)
 
-  sign_in_mail = menu.add.text_input("Email: ",
+  menu.add.text_input("Email: ",
                                      default="example@email.com",
                                      textinput_id="sign_in_mail",
                                      font_size=FONT_SIZE)
-  sign_in_pass = menu.add.text_input("Password: ",
+  menu.add.text_input("Password: ",
                                      default="password",
                                      textinput_id="sign_in_pass",
                                      font_size=FONT_SIZE,
                                      password=False)
   menu.add.button("Sign In", sign_in_action, client, menu, font_size=FONT_SIZE)
 
-  sign_up_mail = menu.add.text_input("Email: ",
+  menu.add.text_input("Email: ",
                                      default="example@email.com",
                                      textinput_id="sign_up_mail",
                                      font_size=FONT_SIZE)
-  sign_up_pass = menu.add.text_input("Password: ",
+  menu.add.text_input("Password: ",
                                      default="password",
                                      textinput_id="sign_up_pass",
                                      font_size=FONT_SIZE,

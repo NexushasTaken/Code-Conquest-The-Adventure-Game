@@ -1,11 +1,11 @@
 from supabase import Client
 
 
-def is_signed_in(client: Client):
+def is_signed_in(client: Client) -> bool:
   return client.auth.get_user() is not None
 
 
-def sign_in(client: Client, email: str, password: str):
+def sign_in(client: Client, email: str, password: str) -> str:
   if is_signed_in(client):
     return "You're already signed in."
   if email == "" or password == "":
@@ -19,11 +19,11 @@ def sign_in(client: Client, email: str, password: str):
   return "Signed In"
 
 
-def sign_in(client: Client, email: str, password: str):
+def sign_up(client: Client, email: str, password: str) -> str:
   if email == "" or password == "":
     return "Enter email and password"
 
-  client.auth.sign_in_with_password({
+  client.auth.sign_up({
       "email": email,
       "password": password,
   })
@@ -31,7 +31,7 @@ def sign_in(client: Client, email: str, password: str):
   return "Signed up"
 
 
-def sign_out(client: Client):
+def sign_out(client: Client) -> str:
   if not is_signed_in(client):
     return "You're not currently sign-in"
 
