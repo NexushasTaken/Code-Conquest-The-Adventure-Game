@@ -5,9 +5,7 @@ description = "Code Conquest - The Adventure Game"
 readme = "README.md"
 requires-python = "==3.12.11"
 dependencies = [
-    "pygame-ce==2.5.5",
-    "pygame-gui>=0.6.14",
-    "pygame-menu-ce==4.5.4",
+    "arcade>=3.3.2",
     "python-dotenv==1.1.1",
     "supabase==2.17.0",
 ]
@@ -16,6 +14,9 @@ dependencies = [
 indent_width = 2
 
 [tool.basedpyright]
+typeCheckingMode = "standard"
+reportIncompatibleMethodOverride = "none"
+
 reportMissingTypeStubs = "none"
 reportUnusedCallResult = "none"
 reportUnknownArgumentType = "none"

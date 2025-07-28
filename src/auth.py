@@ -11,22 +11,28 @@ def sign_in(client: Client, email: str, password: str) -> str:
   if email == "" or password == "":
     return "Enter email and password"
 
-  client.auth.sign_in_with_password({
-      "email": email,
-      "password": password,
-  })
+  try:
+    client.auth.sign_in_with_password({
+        "email": email,
+        "password": password,
+    })
+  except Exception as e:
+    return str(e)
 
-  return "Signed In"
+  return "Signed in"
 
 
 def sign_up(client: Client, email: str, password: str) -> str:
   if email == "" or password == "":
     return "Enter email and password"
 
-  client.auth.sign_up({
-      "email": email,
-      "password": password,
-  })
+  try:
+    client.auth.sign_up({
+        "email": email,
+        "password": password,
+    })
+  except Exception as e:
+    return str(e)
 
   return "Signed up"
 
@@ -35,6 +41,10 @@ def sign_out(client: Client) -> str:
   if not is_signed_in(client):
     return "You're not currently sign-in"
 
-  client.auth.sign_out()
+  try:
+    client.auth.sign_out()
+  except Exception as e:
+    return str(e)
 
   return "Signed out"
+
