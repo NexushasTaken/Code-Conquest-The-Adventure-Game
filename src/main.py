@@ -5,6 +5,8 @@ from pygame_menu import themes, widgets
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
+from auth import *
+
 
 SCREEN_SIZE=(800, 600)
 FONT_SIZE = 16
@@ -22,45 +24,6 @@ def setup_client():
     supabase = create_client(url, key)
 
   return supabase
-
-
-def is_signed_in(client: Client):
-  return client.auth.get_user() is not None
-
-
-def sign_in(client: Client, email: str, password: str):
-  if is_signed_in(client):
-    return "You're already signed in."
-  if email == "" or password == "":
-    return "Enter email and password"
-
-  client.auth.sign_in_with_password({
-      "email": email,
-      "password": password,
-  })
-
-  return "Signed In"
-
-
-def sign_in(client: Client, email: str, password: str):
-  if email == "" or password == "":
-    return "Enter email and password"
-
-  client.auth.sign_in_with_password({
-      "email": email,
-      "password": password,
-  })
-
-  return "Signed up"
-
-
-def sign_out(client: Client):
-  if not is_signed_in(client):
-    return "You're not currently sign-in"
-
-  client.auth.sign_out()
-
-  return "Signed out"
 
 
 def sign_in_action(client: Client, menu: ui.Menu):
