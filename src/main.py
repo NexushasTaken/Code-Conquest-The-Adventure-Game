@@ -28,6 +28,41 @@ def is_signed_in(client: Client):
   return client.auth.get_user() is not None
 
 
+def sign_in(client: Client, email: str, password: str):
+  if is_signed_in(client):
+    return "You're already signed in."
+  if email == "" or password == "":
+    return "Enter email and password"
+
+  client.auth.sign_in_with_password({
+      "email": email,
+      "password": password,
+  })
+
+  return "Signed In"
+
+
+def sign_in(client: Client, email: str, password: str):
+  if email == "" or password == "":
+    return "Enter email and password"
+
+  client.auth.sign_in_with_password({
+      "email": email,
+      "password": password,
+  })
+
+  return "Signed up"
+
+
+def sign_out(client: Client):
+  if not is_signed_in(client):
+    return "You're not currently sign-in"
+
+  client.auth.sign_out()
+
+  return "Signed out"
+
+
 def sign_in_action(client: Client, menu: ui.Menu):
   email_input = menu.get_widget("sign_in_mail")
   password_input = menu.get_widget("sign_in_pass")
@@ -38,20 +73,8 @@ def sign_in_action(client: Client, menu: ui.Menu):
   email = email_input.get_value()
   password = password_input.get_value()
 
-  if is_signed_in(client):
-    label.set_title("You're already signed in.")
-    return
-
-  if email == "" or password == "":
-    label.set_title("Enter email and password")
-    return
-
-  client.auth.sign_in_with_password({
-      "email": email,
-      "password": password,
-  })
-
-  label.set_title("Signed in")
+  status = sign_in(client, email, password)
+  label.set_title(status)
 
 
 def sign_up_action(client: Client, menu: ui.Menu):
@@ -64,29 +87,16 @@ def sign_up_action(client: Client, menu: ui.Menu):
   email = email_input.get_value()
   password = password_input.get_value()
 
-  if email == "" or password == "":
-    label.set_title("Enter email and password")
-    return
-
-  client.auth.sign_up({
-      "email": email,
-      "password": password,
-  })
-
-  label.set_title("Signed up")
+  status = sign_up(client, email, password)
+  label.set_title(status)
 
 
 def sign_out_action(client: Client, menu: ui.Menu):
   label = menu.get_widget("status_label")
   assert label
 
-  if not is_signed_in(client):
-    label.set_title("You're not currently sign-in")
-    return
-
-  client.auth.sign_out()
-
-  label.set_title("Signed out")
+  status = sign_out(client)
+  label.set_title(status)
 
 
 def setup_auth_menu(client: Client) -> ui.Menu:
