@@ -1,4 +1,4 @@
-from supabase import create_client, Client
+from supabase import Client
 
 
 def is_signed_in(client: Client):
