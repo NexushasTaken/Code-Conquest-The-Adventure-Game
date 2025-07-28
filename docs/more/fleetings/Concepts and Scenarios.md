@@ -1,0 +1,3 @@
+# Concepts and Scenarios
+
+In the game, Concept Scenarios are a series of progressively complex programming problems designed to teach and reinforce each concept. Each concept is divided into multiple levels, with each level introducing a new way to apply the concept. Level 1 presents the most basic usage of the concept, while subsequent levels introduce variations and more advanced applications. This structure ensures that players not only learn but also master the concept by revisiting it in different contexts, solidifying their understanding through continuous practice and problem-solving. The design encourages learners to repeatedly apply the concept in different ways, ensuring deeper comprehension and retention.
