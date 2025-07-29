@@ -103,3 +103,27 @@ uv run .\src\main.py
 > Entering this command should open a window where you can see the game itself.
 
 > As of writing this, you should only see a Login Screen.
+
+There is possibility that after running `uv run .\src\main.py`, you will see this error message:
+
+```sh
+Traceback (most recent call last):
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 209, in <module>
+    main()
+    ~~~~^^
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 203, in main
+    game = GameView()
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 37, in __init__
+    self.client = setup_client()
+                  ~~~~~~~~~~~~^^
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 24, in setup_client
+    raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set")
+RuntimeError: SUPABASE_URL and SUPABASE_KEY must be set
+```
+
+That's because, you need the `.env` file that is located on inside "Code Conquest - The Adventure Game".
+
+the file must contain a string with the name of `SUPABASE_URL` and `SUPABASE_KEY`.
+
+Ask your leader for the actual contents of the `.env` file.
+
