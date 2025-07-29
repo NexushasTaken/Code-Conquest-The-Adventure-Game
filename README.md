@@ -121,9 +121,18 @@ Traceback (most recent call last):
 RuntimeError: SUPABASE_URL and SUPABASE_KEY must be set
 ```
 
-That's because, you need the `.env` file that is located on inside "Code Conquest - The Adventure Game".
+That's because, you need the `.env` **file** that is located on inside "Code Conquest - The Adventure Game".
 
 the file must contain a string with the name of `SUPABASE_URL` and `SUPABASE_KEY`.
 
 Ask your leader for the actual contents of the `.env` file.
+
+The contents of the file must be similar to this:
+
+```sh
+SUPABASE_URL="<supabase-project-url>"
+SUPABASE_KEY="<supabase-project-key>"
+```
+
+> why i didn't include `.env` file on this github repository? it's for security reason, since, this repository is public, meaning any people can access repository, and these SUPABASE_URL and SUPABASE_KEY is similar to password, but for Supabase projects.
 
