@@ -3,7 +3,7 @@ name = "code_conquest"
 version = "0.1.0"
 description = "Code Conquest - The Adventure Game"
 readme = "README.md"
-requires-python = "==3.12.11"
+requires-python = ">=3.12.11"
 dependencies = [
     "arcade>=3.3.2",
     "python-dotenv==1.1.1",
