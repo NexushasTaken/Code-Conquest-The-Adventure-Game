@@ -1,209 +1,215 @@
-import os
-from dotenv import load_dotenv
-from supabase import create_client, Client
+from kivy.app import App
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
 
-import arcade
-from arcade import gui
-from arcade.gui.experimental.password_input import UIPasswordInput
+from dotenv import load_dotenv
+from supabase import create_client
 
 from auth import sign_in, sign_up, sign_in_anonymously, sign_out
 
-
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 500
-WINDOW_TITLE = "Code Conquest - The Adventure Game"
+import os
 
 
 def setup_client():
+  load_dotenv()
   url = os.environ.get("SUPABASE_URL")
   key = os.environ.get("SUPABASE_KEY")
-
-  supabase: Client
-
   if url is None or key is None:
     raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set")
-  else:
-    supabase = create_client(url, key)
-
-  return supabase
+  return create_client(url, key)
 
 
-class GameView(arcade.View):
+class AccessModeScreen(Screen):
 
-  def __init__(self):
-    super().__init__()
+  def __init__(self, client, **kwargs):
+    super().__init__(**kwargs)
+    self.client = client
+    layout = BoxLayout(orientation='vertical',
+                       spacing=10,
+                       padding=20,
+                       size_hint=(None, None),
+                       width=400,
+                       height=350,
+                       pos_hint={
+                           'center_x': 0.5,
+                           'center_y': 0.5
+                       })
+    layout.add_widget(Label(text="Choose Access Mode", size_hint_y=None, height=40))
+    btn_sign_in = Button(text="Sign In", size_hint_y=None, height=40)
+    btn_sign_up = Button(text="Sign Up", size_hint_y=None, height=40)
+    btn_guest = Button(text="Sign In as Guest", size_hint_y=None, height=40)
+    btn_exit = Button(text="Exit", size_hint_y=None, height=40)
 
-    load_dotenv()
-    self.client = setup_client()
+    def go_sign_in(instance):
+      self.manager.current = "sign_in"
 
-    self.background_color = arcade.color.DARK_SLATE_GRAY
-    self.ui = gui.UIManager()
+    def go_sign_up(instance):
+      self.manager.current = "sign_up"
 
-    self.auth_layout = self.ui.add(gui.UIAnchorLayout())
+    btn_sign_in.bind(on_release=go_sign_in)
+    btn_sign_up.bind(on_release=go_sign_up)
+    btn_guest.bind(on_release=self.sign_in_guest)
+    btn_exit.bind(on_release=lambda _: App.get_running_app().stop())
+    layout.add_widget(btn_sign_in)
+    layout.add_widget(btn_sign_up)
+    layout.add_widget(btn_guest)
+    layout.add_widget(btn_exit)
+    self.add_widget(layout)
 
-    self.setup_access_mode_layout()
-    self.setup_sign_in_layout()
-    self.setup_sign_up_layout()
-    self.setup_main_menu_layout()
-
-    self.layouts = [self.access_mode_layout, self.sign_in_layout, self.sign_up_layout, self.main_menu_layout]
-    self.auth_layout.add(self.access_mode_layout)
-
-
-  def hide_layouts(self):
-    for layout in self.layouts:
-      self.auth_layout.remove(layout)
-    pass
-
-
-  def setup_access_mode_layout(self):
-    self.access_mode_layout = gui.UIBoxLayout(space_between=4)
-    sign_in_button = gui.UIFlatButton(text="Sign In", height=30)
-    sign_up_button = gui.UIFlatButton(text="Sign Up", height=30)
-    sign_in_as_guest_button = gui.UIFlatButton(text="Sign In as Guest", width=160, height=30)
-    exit_button = gui.UIFlatButton(text="Exit", height=30)
-
-    @sign_in_button.event("on_click")
-    def to_sign_in(event):
-      self.hide_layouts()
-      self.auth_layout.add(self.sign_in_layout)
-
-    @sign_up_button.event("on_click")
-    def to_sign_up(event):
-      self.hide_layouts()
-      self.auth_layout.add(self.sign_up_layout)
-
-    @sign_in_as_guest_button.event("on_click")
-    def to_sign_in_as_guest_button(event):
-      self.hide_layouts()
-      response = sign_in_anonymously(self.client)
-      self.signed_in_user_label.text = f"Signed in as Guest"
-      self.auth_layout.add(self.main_menu_layout)
-
-    @exit_button.event("on_click")
-    def do_exit(event):
-      arcade.exit()
-
-    self.access_mode_layout.add(gui.UILabel(text="Choose Access Mode", height=30))
-    self.access_mode_layout.add(sign_in_button)
-    self.access_mode_layout.add(sign_up_button)
-    self.access_mode_layout.add(sign_in_as_guest_button)
-    self.access_mode_layout.add(exit_button)
+  def sign_in_guest(self, *_):
+    sign_in_anonymously(self.client)
+    self.manager.get_screen(
+        "main_menu").signed_in_user_label.text = "Signed in as Guest"
+    self.manager.current = "main_menu"
 
 
-  def setup_sign_in_layout(self):
-    self.sign_in_layout = gui.UIGridLayout(size_hint=(0, 0), column_count=3, row_count=5, vertical_spacing=4, horizontal_spacing=4)
-    input_email = gui.UIInputText(text="example@email.com", height=30, width=200)
-    input_password = UIPasswordInput(text="password", height=30, width=200)
-    status_label = gui.UILabel(text="", height=30)
-    sign_in_button = gui.UIFlatButton(text="Sign In", height=30)
-    back_button = gui.UIFlatButton(text="Back", height=30)
+class SignInScreen(Screen):
 
-    @sign_in_button.event("on_click")
-    def do_sign_in(event):
-      self.hide_layouts()
-      status = sign_in(self.client, input_email.text, input_password.text)
-      status_label.text = status
-      if status == "Signed in":
-        self.hide_layouts()
-        self.auth_layout.add(self.main_menu_layout)
-        status_label.text = ""
-        user = self.client.auth.get_user()
-        assert user
-        self.signed_in_user_label.text = f"Signed in as {user.user.email}"
+  def __init__(self, client, **kwargs):
+    super().__init__(**kwargs)
+    self.client = client
+    layout = BoxLayout(orientation='vertical',
+                       spacing=10,
+                       padding=20,
+                       size_hint=(None, None),
+                       width=400,
+                       height=350,
+                       pos_hint={
+                           'center_x': 0.5,
+                           'center_y': 0.5
+                       })
+    layout.add_widget(Label(text="Sign In Credentials", size_hint_y=None, height=40))
+    self.input_email = TextInput(text="example@email.com",
+                                 hint_text="Email",
+                                 size_hint_y=None,
+                                 height=40)
+    self.input_password = TextInput(text="password",
+                                    hint_text="Password",
+                                    password=True,
+                                    size_hint_y=None,
+                                    height=40)
+    self.status = Label(text="", size_hint_y=None, height=30)
+    btn_sign_in = Button(text="Sign In", size_hint_y=None, height=40)
+    btn_back = Button(text="Back", size_hint_y=None, height=40)
+    btn_sign_in.bind(on_release=self.do_sign_in)
 
-    @back_button.event("on_click")
-    def to_access_mode(event):
-      self.hide_layouts()
-      self.auth_layout.add(self.access_mode_layout)
+    def go_access_mode(_):
+      self.manager.current = "access_mode"
 
-    self.sign_in_layout.add(gui.UILabel(text="Sign In Credentials", height=30), row=0, column_span=2)
+    btn_back.bind(on_release=go_access_mode)
+    layout.add_widget(self.input_email)
+    layout.add_widget(self.input_password)
+    layout.add_widget(self.status)
+    layout.add_widget(btn_sign_in)
+    layout.add_widget(btn_back)
+    self.add_widget(layout)
 
-    self.sign_in_layout.add(gui.UILabel(text="Email", height=30), row=1, column=0)
-    self.sign_in_layout.add(input_email, row=1, column=1)
-
-    self.sign_in_layout.add(gui.UILabel(text="Password", height=30), row=2, column=0)
-    self.sign_in_layout.add(input_password, row=2, column=1)
-
-    self.sign_in_layout.add(status_label, row=3, column=0)
-    self.sign_in_layout.add(sign_in_button, row=3, column=1)
-    self.sign_in_layout.add(back_button, row=4, column_span=2)
-
-
-  def setup_sign_up_layout(self):
-    self.sign_up_layout = gui.UIGridLayout(size_hint=(0, 0), column_count=3, row_count=5, vertical_spacing=4, horizontal_spacing=4)
-    input_email = gui.UIInputText(text="example@email.com", height=30, width=200)
-    input_password = UIPasswordInput(text="password", height=30, width=200)
-    status_label = gui.UILabel(text="", height=30)
-    sign_up_button = gui.UIFlatButton(text="Sign Up", height=30)
-    back_button = gui.UIFlatButton(text="Back", height=30)
-
-    @sign_up_button.event("on_click")
-    def do_sign_up(event):
-      status = sign_up(self.client, input_email.text, input_password.text)
-      status_label.text = status
-
-    @back_button.event("on_click")
-    def to_access_mode(event):
-      self.hide_layouts()
-      self.auth_layout.add(self.access_mode_layout)
-      status_label.text = ""
+  def do_sign_in(self, *_):
+    status = sign_in(self.client, self.input_email.text,
+                     self.input_password.text)
+    self.status.text = status
+    if status == "Signed in":
+      user = self.client.auth.get_user()
+      if user:
+        self.manager.get_screen(
+            "main_menu"
+        ).signed_in_user_label.text = f"Signed in as {user.user.email}"
+      self.manager.current = "main_menu"
 
 
-    self.sign_up_layout.add(gui.UILabel(text="Sign Up Credentials", height=30), row=0, column_span=2)
+class SignUpScreen(Screen):
 
-    self.sign_up_layout.add(gui.UILabel(text="Email", height=30), row=1, column=0)
-    self.sign_up_layout.add(input_email, row=1, column=1)
+  def __init__(self, client, **kwargs):
+    super().__init__(**kwargs)
+    self.client = client
+    layout = BoxLayout(orientation='vertical',
+                       spacing=10,
+                       padding=20,
+                       size_hint=(None, None),
+                       width=400,
+                       height=350,
+                       pos_hint={
+                           'center_x': 0.5,
+                           'center_y': 0.5
+                       })
+    layout.add_widget(
+        Label(text="Sign Up Credentials", size_hint_y=None, height=40))
+    self.input_email = TextInput(text="example@email.com",
+                                 hint_text="Email",
+                                 size_hint_y=None,
+                                 height=40)
+    self.input_password = TextInput(text="password",
+                                    hint_text="Password",
+                                    password=True,
+                                    size_hint_y=None,
+                                    height=40)
+    self.status = Label(text="", size_hint_y=None, height=30)
+    btn_sign_up = Button(text="Sign Up", size_hint_y=None, height=40)
+    btn_back = Button(text="Back", size_hint_y=None, height=40)
+    btn_sign_up.bind(on_release=self.do_sign_up)
 
-    self.sign_up_layout.add(gui.UILabel(text="Password", height=30), row=2, column=0)
-    self.sign_up_layout.add(input_password, row=2, column=1)
+    def go_access_mode(_):
+      self.manager.current = "access_mode"
 
-    self.sign_up_layout.add(status_label, row=3, column=0)
-    self.sign_up_layout.add(sign_up_button, row=3, column=1)
-    self.sign_up_layout.add(back_button, row=4, column_span=2)
+    btn_back.bind(on_release=go_access_mode)
+    layout.add_widget(self.input_email)
+    layout.add_widget(self.input_password)
+    layout.add_widget(self.status)
+    layout.add_widget(btn_sign_up)
+    layout.add_widget(btn_back)
+    self.add_widget(layout)
 
-
-  def setup_main_menu_layout(self):
-    self.main_menu_layout = gui.UIBoxLayout(space_between=4)
-    self.signed_in_user_label = gui.UILabel(text="Signed In as <email>", height=30)
-    sign_out_button = gui.UIFlatButton(text="Logout", height=30)
-
-    @sign_out_button.event("on_click")
-    def do_sign_out(event):
-      self.hide_layouts()
-      status = sign_out(self.client)
-      print(status)
-      assert status == "Signed out"
-      self.auth_layout.add(self.access_mode_layout)
-
-    self.main_menu_layout.add(gui.UILabel(text="Main Menu", height=30))
-    self.main_menu_layout.add(self.signed_in_user_label)
-    self.main_menu_layout.add(sign_out_button)
+  def do_sign_up(self, *_):
+    status = sign_up(self.client, self.input_email.text,
+                     self.input_password.text)
+    self.status.text = status
 
 
-  def reset(self):
-    pass
+class MainMenuScreen(Screen):
 
-  def on_draw(self):
-    self.clear()
-    self.ui.draw()
+  def __init__(self, client, **kwargs):
+    super().__init__(**kwargs)
+    self.client = client
+    layout = BoxLayout(orientation='vertical',
+                       spacing=10,
+                       padding=20,
+                       size_hint=(None, None),
+                       width=400,
+                       height=350,
+                       pos_hint={
+                           'center_x': 0.5,
+                           'center_y': 0.5
+                       })
+    layout.add_widget(Label(text="Main Menu", size_hint_y=None, height=40))
+    self.signed_in_user_label = Label(text="Signed In as <email>",
+                                      size_hint_y=None,
+                                      height=30)
+    btn_logout = Button(text="Logout", size_hint_y=None, height=40)
+    btn_logout.bind(on_release=self.do_sign_out)
+    layout.add_widget(self.signed_in_user_label)
+    layout.add_widget(btn_logout)
+    self.add_widget(layout)
 
-  def on_update(self, delta_time):
-    pass
-
-  def on_show_view(self):
-    self.ui.enable()
-
-  def on_hide_view(self):
-    self.ui.disable()
+  def do_sign_out(self, *_):
+    status = sign_out(self.client)
+    self.manager.current = "access_mode"
 
 
-def main():
-  window = arcade.Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
-  game = GameView()
-  window.show_view(game)
-  arcade.run()
+class CodeConquestApp(App):
+
+  def build(self):
+    client = setup_client()
+    sm = ScreenManager(transition=NoTransition())
+    sm.add_widget(AccessModeScreen(client, name="access_mode"))
+    sm.add_widget(SignInScreen(client, name="sign_in"))
+    sm.add_widget(SignUpScreen(client, name="sign_up"))
+    sm.add_widget(MainMenuScreen(client, name="main_menu"))
+    sm.current = "access_mode"
+    return sm
 
 
 if __name__ == "__main__":
-  main()
+  CodeConquestApp().run()
