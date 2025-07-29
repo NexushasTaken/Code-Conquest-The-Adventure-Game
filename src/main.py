@@ -6,12 +6,12 @@ import arcade
 from arcade import gui
 from arcade.gui.experimental.password_input import UIPasswordInput
 
-from auth import sign_in, sign_out, sign_up
+from auth import sign_in, sign_up, sign_in_anonymously, sign_out
 
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
-WINDOW_TITLE = "Starting Template"
+WINDOW_TITLE = "Code Conquest - The Adventure Game"
 
 
 def setup_client():
@@ -60,6 +60,7 @@ class GameView(arcade.View):
     self.access_mode_layout = gui.UIBoxLayout(space_between=4)
     sign_in_button = gui.UIFlatButton(text="Sign In", height=30)
     sign_up_button = gui.UIFlatButton(text="Sign Up", height=30)
+    sign_in_as_guest_button = gui.UIFlatButton(text="Sign In as Guest", width=160, height=30)
     exit_button = gui.UIFlatButton(text="Exit", height=30)
 
     @sign_in_button.event("on_click")
@@ -72,13 +73,21 @@ class GameView(arcade.View):
       self.hide_layouts()
       self.auth_layout.add(self.sign_up_layout)
 
+    @sign_in_as_guest_button.event("on_click")
+    def to_sign_in_as_guest_button(event):
+      self.hide_layouts()
+      response = sign_in_anonymously(self.client)
+      self.signed_in_user_label.text = f"Signed in as Guest"
+      self.auth_layout.add(self.main_menu_layout)
+
     @exit_button.event("on_click")
     def do_exit(event):
       arcade.exit()
 
-    self.access_mode_layout.add(gui.UILabel(text="Choose Access Layout", height=30))
+    self.access_mode_layout.add(gui.UILabel(text="Choose Access Mode", height=30))
     self.access_mode_layout.add(sign_in_button)
     self.access_mode_layout.add(sign_up_button)
+    self.access_mode_layout.add(sign_in_as_guest_button)
     self.access_mode_layout.add(exit_button)
 
 
@@ -162,7 +171,9 @@ class GameView(arcade.View):
     @sign_out_button.event("on_click")
     def do_sign_out(event):
       self.hide_layouts()
-      assert sign_out(self.client) == "Signed out"
+      status = sign_out(self.client)
+      print(status)
+      assert status == "Signed out"
       self.auth_layout.add(self.access_mode_layout)
 
     self.main_menu_layout.add(gui.UILabel(text="Main Menu", height=30))

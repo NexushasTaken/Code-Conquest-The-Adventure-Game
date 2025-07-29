@@ -36,6 +36,13 @@ def sign_up(client: Client, email: str, password: str) -> str:
 
   return "Signed up"
 
+def sign_in_anonymously(client: Client) -> str:
+  try:
+    client.auth.sign_in_anonymously()
+    return "Signed In as Anonymous"
+  except Exception as e:
+    return str(e)
+
 
 def sign_out(client: Client) -> str:
   if not is_signed_in(client):
