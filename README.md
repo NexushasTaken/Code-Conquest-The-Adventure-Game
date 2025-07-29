@@ -2,6 +2,8 @@
 
 Read [Document](./docs/README.md) for game documents
 
+Read [Github Desktop](./docs/guide/git.md) for how to setup github desktop.
+
 ## How to setup the game?
 
 Follow the steps and instruction below to properly setup the game development.
