@@ -27,16 +27,7 @@ class AccessModeScreen(Screen):
   def __init__(self, client, **kwargs):
     super().__init__(**kwargs)
     self.client = client
-    layout = BoxLayout(orientation='vertical',
-                       spacing=10,
-                       padding=20,
-                       size_hint=(None, None),
-                       width=400,
-                       height=350,
-                       pos_hint={
-                           'center_x': 0.5,
-                           'center_y': 0.5
-                       })
+    layout = BoxLayout(orientation='vertical', spacing=10, padding=20, size_hint=(None, None), width=400, height=350, pos_hint={ 'center_x': 0.5, 'center_y': 0.5 })
     layout.add_widget(Label(text="Choose Access Mode", size_hint_y=None, height=40))
     btn_sign_in = Button(text="Sign In", size_hint_y=None, height=40)
     btn_sign_up = Button(text="Sign Up", size_hint_y=None, height=40)
@@ -71,26 +62,10 @@ class SignInScreen(Screen):
   def __init__(self, client, **kwargs):
     super().__init__(**kwargs)
     self.client = client
-    layout = BoxLayout(orientation='vertical',
-                       spacing=10,
-                       padding=20,
-                       size_hint=(None, None),
-                       width=400,
-                       height=350,
-                       pos_hint={
-                           'center_x': 0.5,
-                           'center_y': 0.5
-                       })
+    layout = BoxLayout(orientation='vertical', spacing=10, padding=20, size_hint=(None, None), width=400, height=350, pos_hint={ 'center_x': 0.5, 'center_y': 0.5 })
     layout.add_widget(Label(text="Sign In Credentials", size_hint_y=None, height=40))
-    self.input_email = TextInput(text="example@email.com",
-                                 hint_text="Email",
-                                 size_hint_y=None,
-                                 height=40)
-    self.input_password = TextInput(text="password",
-                                    hint_text="Password",
-                                    password=True,
-                                    size_hint_y=None,
-                                    height=40)
+    self.input_email = TextInput(text="example@email.com", hint_text="Email", size_hint_y=None, height=40)
+    self.input_password = TextInput(text="password", hint_text="Password", password=True, size_hint_y=None, height=40)
     self.status = Label(text="", size_hint_y=None, height=30)
     btn_sign_in = Button(text="Sign In", size_hint_y=None, height=40)
     btn_back = Button(text="Back", size_hint_y=None, height=40)
@@ -108,8 +83,7 @@ class SignInScreen(Screen):
     self.add_widget(layout)
 
   def do_sign_in(self, *_):
-    status = sign_in(self.client, self.input_email.text,
-                     self.input_password.text)
+    status = sign_in(self.client, self.input_email.text, self.input_password.text)
     self.status.text = status
     if status == "Signed in":
       user = self.client.auth.get_user()
@@ -125,22 +99,9 @@ class SignUpScreen(Screen):
   def __init__(self, client, **kwargs):
     super().__init__(**kwargs)
     self.client = client
-    layout = BoxLayout(orientation='vertical',
-                       spacing=10,
-                       padding=20,
-                       size_hint=(None, None),
-                       width=400,
-                       height=350,
-                       pos_hint={
-                           'center_x': 0.5,
-                           'center_y': 0.5
-                       })
-    layout.add_widget(
-        Label(text="Sign Up Credentials", size_hint_y=None, height=40))
-    self.input_email = TextInput(text="example@email.com",
-                                 hint_text="Email",
-                                 size_hint_y=None,
-                                 height=40)
+    layout = BoxLayout(orientation='vertical', spacing=10, padding=20, size_hint=(None, None), width=400, height=350, pos_hint={ 'center_x': 0.5, 'center_y': 0.5 })
+    layout.add_widget(Label(text="Sign Up Credentials", size_hint_y=None, height=40))
+    self.input_email = TextInput(text="example@email.com", hint_text="Email", size_hint_y=None, height=40)
     self.input_password = TextInput(text="password",
                                     hint_text="Password",
                                     password=True,
@@ -163,8 +124,7 @@ class SignUpScreen(Screen):
     self.add_widget(layout)
 
   def do_sign_up(self, *_):
-    status = sign_up(self.client, self.input_email.text,
-                     self.input_password.text)
+    status = sign_up(self.client, self.input_email.text, self.input_password.text)
     self.status.text = status
 
 
@@ -173,20 +133,9 @@ class MainMenuScreen(Screen):
   def __init__(self, client, **kwargs):
     super().__init__(**kwargs)
     self.client = client
-    layout = BoxLayout(orientation='vertical',
-                       spacing=10,
-                       padding=20,
-                       size_hint=(None, None),
-                       width=400,
-                       height=350,
-                       pos_hint={
-                           'center_x': 0.5,
-                           'center_y': 0.5
-                       })
+    layout = BoxLayout(orientation='vertical', spacing=10, padding=20, size_hint=(None, None), width=400, height=350, pos_hint={ 'center_x': 0.5, 'center_y': 0.5 })
     layout.add_widget(Label(text="Main Menu", size_hint_y=None, height=40))
-    self.signed_in_user_label = Label(text="Signed In as <email>",
-                                      size_hint_y=None,
-                                      height=30)
+    self.signed_in_user_label = Label(text="Signed In as <email>", size_hint_y=None, height=30)
     btn_logout = Button(text="Logout", size_hint_y=None, height=40)
     btn_logout.bind(on_release=self.do_sign_out)
     layout.add_widget(self.signed_in_user_label)
@@ -213,3 +162,4 @@ class CodeConquestApp(App):
 
 if __name__ == "__main__":
   CodeConquestApp().run()
+
