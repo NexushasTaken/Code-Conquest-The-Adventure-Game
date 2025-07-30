@@ -9,7 +9,7 @@ flowchart TD
   InitClient --> ChooseMode{{"Choose Login Type"}}
 
   ChooseMode -->|Anonymous| AnonLogin["supabase.auth.signInAnonymously()"]
-  ChooseMode -->|Permanent| AuthOrSignup{{"Already Registered?"}}
+  ChooseMode -->|Permanent| AuthOrSignup{"Already Registered?"}
 
   AuthOrSignup -->|Yes| SignInCredentials{{"Auth Credentials"}}
   SignInCredentials --> AuthLogin["supabase.auth.signInWithPassword({ email, password })"]
