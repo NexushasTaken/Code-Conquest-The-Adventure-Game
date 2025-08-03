@@ -1,6 +1,7 @@
 ### Custom
 build
 android
+*.apk*
 
 ### Created by https://www.gitignore.io
 ### CMake ###
