@@ -14,7 +14,7 @@ API_VERSION="31"
 BUILD=$(pwd)/android/build
 NAME=game
 DEV_NAME=raylib
-SRC=src/*.c
+SRC=src/*.cpp
 TARGET=Android
 
 SDK=$(pwd)/android/sdk/$(uname)
@@ -54,7 +54,7 @@ for ABI in $ABIS; do
       ARCH="arm"
       ARCH_ALT="$ARCH"
       LIBPATH="arm-linux-androideabi"
-      ABI_FLAGS="-std=c99 -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16"
+      ABI_FLAGS="-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16"
       ;;
 
     "arm64-v8a")
@@ -62,7 +62,7 @@ for ABI in $ABIS; do
       ARCH="aarch64"
       ARCH_ALT="arm64"
       LIBPATH="aarch64-linux-android"
-      ABI_FLAGS="-std=c99 -target aarch64 -mfix-cortex-a53-835769"
+      ABI_FLAGS="-target aarch64 -mfix-cortex-a53-835769"
       ;;
 
     "x86")
@@ -82,6 +82,7 @@ for ABI in $ABIS; do
       ;;
   esac
   CC="$TOOLCHAIN/bin/$CCTYPE$API_VERSION-clang"
+  CXX="$TOOLCHAIN/bin/$CCTYPE$API_VERSION-clang++"
   if [[ ! -f "lib/Android/$ABI/libraylib.a" ]]; then
     make -C raylib/src clean
     make -C raylib/src PLATFORM=PLATFORM_ANDROID ANDROID_NDK=$NDK ANDROID_ARCH=$ARCH_ALT ANDROID_API_VERSION=$API_VERSION RAYLIB_BUILD_MODE=RELEASE -j
@@ -100,7 +101,7 @@ for ABI in $ABIS; do
   # Compile project
   # FLAGS and TYPEFLAGS are from the main build script which sources this one
   mkdir -p $BUILD/lib/$ABI
-  $CC $SRC -o $BUILD/lib/$ABI/libmain.so -shared \
+  $CXX $SRC -o $BUILD/lib/$ABI/libmain.so -shared \
   -Wl,--exclude-libs,libatomic.a \
   -Wl,--build-id \
   -Wl,-z,noexecstack \
