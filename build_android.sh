@@ -82,10 +82,12 @@ for ABI in $ABIS; do
       ;;
   esac
   CC="$TOOLCHAIN/bin/$CCTYPE$API_VERSION-clang"
-  make -C raylib/src clean
-  make -C raylib/src PLATFORM=PLATFORM_ANDROID ANDROID_NDK=$NDK ANDROID_ARCH=$ARCH_ALT ANDROID_API_VERSION=$API_VERSION RAYLIB_BUILD_MODE=RELEASE -j
-  mkdir -p lib/Android/$ABI/
-  mv raylib/src/libraylib.a lib/Android/$ABI/
+  if [[ ! -f "lib/Android/$ABI/libraylib.a" ]]; then
+    make -C raylib/src clean
+    make -C raylib/src PLATFORM=PLATFORM_ANDROID ANDROID_NDK=$NDK ANDROID_ARCH=$ARCH_ALT ANDROID_API_VERSION=$API_VERSION RAYLIB_BUILD_MODE=RELEASE -j
+    mkdir -p lib/Android/$ABI/
+    mv raylib/src/libraylib.a lib/$TARGET/$ABI/
+  fi
 
   # Compile native app glue
   # .c -> .o
@@ -144,14 +146,19 @@ for ABI in $ABIS; do
 done
 cd ../..
 
-# Sign and zipalign APK
-$BUILD_TOOLS/apksigner sign --ks android/$DEV_NAME.keystore --out $NAME.signed.apk --ks-pass pass:$DEV_NAME $NAME.apk
+# 1. Zipalign the unsigned APK
+$BUILD_TOOLS/zipalign -f 4 $NAME.apk $NAME.aligned.apk
+
+# 2. Sign the aligned APK
+$BUILD_TOOLS/apksigner sign \
+  --ks android/$DEV_NAME.keystore \
+  --ks-pass pass:$DEV_NAME \
+  --out $NAME.signed.apk \
+  $NAME.aligned.apk
+
+# 3. Replace original
 mv $NAME.signed.apk $NAME.apk
 
-# Zipalign APK and sign
-# NOTE: If you changed the storepass and keypass in the setup process, change them here too
-$BUILD_TOOLS/zipalign -f 4 $NAME.apk $NAME.final.apk
-mv -f $NAME.final.apk $NAME.apk
 
 # Install to device or emulator if -r was specified
 [[ "$1" = "-r" ]] && $SDK/platform-tools/adb install -r $NAME.apk || \builtin true
