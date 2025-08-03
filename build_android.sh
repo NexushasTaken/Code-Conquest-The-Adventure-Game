@@ -84,10 +84,11 @@ for ABI in $ABIS; do
   CC="$TOOLCHAIN/bin/$CCTYPE$API_VERSION-clang"
   CXX="$TOOLCHAIN/bin/$CCTYPE$API_VERSION-clang++"
   if [[ ! -f "lib/Android/$ABI/libraylib.a" ]]; then
-    make -C raylib/src clean
-    make -C raylib/src PLATFORM=PLATFORM_ANDROID ANDROID_NDK=$NDK ANDROID_ARCH=$ARCH_ALT ANDROID_API_VERSION=$API_VERSION RAYLIB_BUILD_MODE=RELEASE -j
+    make -C externals/raylib/src clean
+    make -C externals/raylib/src PLATFORM=PLATFORM_ANDROID ANDROID_NDK=$NDK ANDROID_ARCH=$ARCH_ALT ANDROID_API_VERSION=$API_VERSION RAYLIB_BUILD_MODE=RELEASE -j
+    make -C externals/raylib/src clean
     mkdir -p lib/Android/$ABI/
-    mv raylib/src/libraylib.a lib/$TARGET/$ABI/
+    mv externals/raylib/src/libraylib.a lib/$TARGET/$ABI/
   fi
 
   # Compile native app glue
