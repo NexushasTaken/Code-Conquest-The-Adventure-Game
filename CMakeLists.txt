@@ -26,53 +26,41 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
 
   add_library(main SHARED ${SRC})
 
+  set(MANIFEST ${CMAKE_CURRENT_SOURCE_DIR}/src/com/AndroidManifest.xml)
+  set(ANDROID_JAR ${SDK}/platforms/android-${CMAKE_SYSTEM_VERSION}/android.jar)
+  set(RES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets/res)
+  set(RES ${RES_DIR}/**/*)
+  set(R_JAVA ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.java)
+
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/)
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.java
+    OUTPUT ${R_JAVA}
     COMMAND ${BUILD_TOOLS}/aapt package -f -m
-            -S ${CMAKE_CURRENT_SOURCE_DIR}/android/build/res
+            -S ${CMAKE_CURRENT_SOURCE_DIR}/assets/res
             -J ${CMAKE_CURRENT_BINARY_DIR}/src
-            -M ${CMAKE_CURRENT_SOURCE_DIR}/android/build/AndroidManifest.xml
-            -I ${SDK}/platforms/android-${CMAKE_SYSTEM_VERSION}/android.jar
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/android/build/AndroidManifest.xml
-            ${CMAKE_CURRENT_SOURCE_DIR}/android/build/res/**/*
+            -M ${MANIFEST}
+            -I ${ANDROID_JAR}
+    DEPENDS ${MANIFEST} ${RES}
     COMMENT "Packaging resources and generating R.java using aapt"
   )
 
-  add_custom_target(generate_resources
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.java
-  )
+  add_custom_target(generate_resources DEPENDS ${R_JAVA})
 
+  set(NATIVE_LOADER_OUT ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/NativeLoader.class
+                        ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.class)
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/NativeLoader.class
-           ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R\$attr.class
-           ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R\$drawable.class
-           ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.class
+    OUTPUT ${NATIVE_LOADER_OUT}
     COMMAND javac -verbose -source 1.8 -target 1.8
             -bootclasspath jre/lib/rt.jar
-            -classpath ${SDK}/platforms/android-${CMAKE_SYSTEM_VERSION}/android.jar
-            -sourcepath src ${CMAKE_CURRENT_SOURCE_DIR}/android/build/src/com/${DEV_NAME}/${NAME}/R.java
-            -d ${CMAKE_CURRENT_BINARY_DIR}/build/class
+            -classpath ${ANDROID_JAR}
+            -sourcepath src ${R_JAVA}
+            -d ${CMAKE_CURRENT_BINARY_DIR}/src
             ${CMAKE_CURRENT_SOURCE_DIR}/android/build/src/com/${DEV_NAME}/${NAME}/NativeLoader.java
-    DEPENDS generate_resources
-            ${CMAKE_CURRENT_SOURCE_DIR}/android/build/src/com/${DEV_NAME}/${NAME}/R.java
-    COMMENT "Packaging resources and generating R.java using aapt"
+    DEPENDS generate_resources ${R_JAVA}
+    COMMENT "Compiling NativeLoader"
   )
-  add_custom_target(nativeloader
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/NativeLoader.class
-            ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R\$attr.class
-            ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R\$drawable.class
-            ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.class
-  )
+  add_custom_target(nativeloader DEPENDS ${NATIVE_LOADER_OUT})
 
   add_dependencies(main nativeloader)
-
-  # Compile NativeLoader.java
-  #$JAVA/bin/javac -verbose -source 1.8 -target 1.8 \
-  #  -bootclasspath jre/lib/rt.jar \
-  #  -classpath $SDK/platforms/android-$API_VERSION/android.jar \
-  #  -sourcepath src $BUILD/src/com/$DEV_NAME/$NAME/R.java \
-  #  -d $BUILD/classes \
-  #  $BUILD/src/com/$DEV_NAME/$NAME/NativeLoader.java
 endif()
 add_subdirectory(./externals/raylib/)
