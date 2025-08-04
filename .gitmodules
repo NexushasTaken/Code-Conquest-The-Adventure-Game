@@ -15,9 +15,3 @@
   url = https://github.com/curl/curl
   branch = curl-8_15_0
   shallow = 1
-
-[submodule "openssl"]
-  path = externals/openssl
-  url = https://github.com/openssl/openssl
-  branch = 3.5.1
-  shallow = 1

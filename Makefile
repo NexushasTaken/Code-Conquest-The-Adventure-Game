@@ -20,6 +20,8 @@ JAVA_HOME := /usr/lib/jvm/java-21-openjdk
 BUILD_TOOLS := $(SDK)/build-tools/36.0.0
 TOOLCHAIN := $(NDK)/toolchains/llvm/prebuilt/linux-x86_64
 NATIVE_APP_GLUE := $(NDK)/sources/android/native_app_glue
+OPENSSL_VERSION := 3.5.1
+OPENSSL_ROOT := ./externals/openssl/openssl_$(OPENSSL_VERSION)_$(ABI)/
 
 # ==============================================================================
 # Tools
@@ -204,6 +206,11 @@ $(SIGNED_APK): $(ALIGNED_APK)
 		--ks android/$(DEV_NAME).keystore \
 		--ks-pass pass:$(DEV_NAME) \
 		--out $@ $<
+
+externals/openssl/OpenSSL_$(OPENSSL_VERSION)_$(ABI).tar.gz:
+	@mkdir -p $(@D)
+	wget https://github.com/217heidai/openssl_for_android/releases/download/$(OPENSSL_VERSION)/OpenSSL_$(OPENSSL_VERSION)_$(ABI).tar.gz -O $@
+	tar xvf $@ --directory $(@D)
 
 # Install APK to device/emulator
 .PHONY: install
