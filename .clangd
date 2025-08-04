@@ -1,3 +1,5 @@
 CompileFlags:
-  Add:
-    - "-I./externals/curl/include/"
+  Add: [
+    "-I./externals/curl/include/",
+    "-I./android/ndk/Linux/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include"
+    ]
