@@ -72,6 +72,27 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
   )
   add_custom_target(classes_dex DEPENDS dex/classes.dex)
 
-  add_dependencies(main classes_dex)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
+    COMMAND ${BUILD_TOOLS}/aapt package -f
+            -M ${MANIFEST}
+            -S ${CMAKE_CURRENT_SOURCE_DIR}/assets/res # TODO: move /res to another location.
+            -A ${CMAKE_CURRENT_SOURCE_DIR}/assets
+            -I ${ANDROID_JAR}
+            -F ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
+            ${CMAKE_CURRENT_BINARY_DIR}/dex
+    COMMAND ${BUILD_TOOLS}/aapt add ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
+            ${CMAKE_CURRENT_BINARY_DIR}/libmain.so
+    COMMAND ${BUILD_TOOLS}/zipalign -f 4 ${NAME}.apk ${NAME}.aligned.apk
+    COMMAND ${BUILD_TOOLS}/apksigner sign
+            --ks ${CMAKE_CURRENT_SOURCE_DIR}/android/${DEV_NAME}.keystore
+            --ks-pass pass:${DEV_NAME}
+            --out ${NAME}.signed.apk
+            ${NAME}.aligned.apk
+    COMMAND mv ${NAME}.signed.apk com.${DEV_NAME}.${NAME}.apk
+    DEPENDS nativeloader ${CMAKE_CURRENT_BINARY_DIR}/libmain.so
+    COMMENT "Generate classes.dex"
+  )
+  add_custom_target(apk DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk)
 endif()
 add_subdirectory(./externals/raylib/)
