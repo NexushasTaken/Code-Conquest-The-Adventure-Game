@@ -56,11 +56,22 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
             -sourcepath src ${R_JAVA}
             -d ${CMAKE_CURRENT_BINARY_DIR}/src
             ${CMAKE_CURRENT_SOURCE_DIR}/android/build/src/com/${DEV_NAME}/${NAME}/NativeLoader.java
-    DEPENDS generate_resources ${R_JAVA}
+    DEPENDS generate_resources
     COMMENT "Compiling NativeLoader"
   )
   add_custom_target(nativeloader DEPENDS ${NATIVE_LOADER_OUT})
 
-  add_dependencies(main nativeloader)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dex/)
+  add_custom_command(
+    OUTPUT dex/classes.dex
+    COMMAND ${BUILD_TOOLS}/d8 --classpath ${ANDROID_JAR}
+            --output ${CMAKE_CURRENT_BINARY_DIR}/dex/
+            ${NATIVE_LOADER_OUT}
+    DEPENDS nativeloader
+    COMMENT "Generate classes.dex"
+  )
+  add_custom_target(classes_dex DEPENDS dex/classes.dex)
+
+  add_dependencies(main classes_dex)
 endif()
 add_subdirectory(./externals/raylib/)
