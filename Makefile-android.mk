@@ -78,10 +78,11 @@ CLASSES_DEX := $(BUILD_DIR)/dex/classes.dex
 APK := $(NAME).apk
 ALIGNED_APK := $(NAME).aligned.apk
 SIGNED_APK := $(DOMAIN).$(DEV_NAME).$(NAME).apk
+ASSET_DIR := ./assets
 
 # Resource files (explicitly listed to avoid wildcard issues)
 RES_FILES := $(wildcard $(BUILD_DIR)/res/*/*) $(BUILD_DIR)/AndroidManifest.xml
-ASSET_FILES := $(wildcard assets/*)
+ASSET_FILES := $(shell find $(ASSET_DIR) -type f)
 
 # ==============================================================================
 # Targets
@@ -154,7 +155,7 @@ $(LIBMAIN): $(SRC) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
 		-L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
 		-L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
 		-I./externals/curl/include/ \
-		-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lc -lm -ldl -lcurl \
+		-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl \
 		$(INCLUDES) $(FLAGS) $(ABI_FLAGS)
 
 # Generate R.java from resources
@@ -180,9 +181,9 @@ $(CLASSES_DEX): $(NATIVE_LOADER_CLASS)
 		--output $(BUILD_DIR)/dex $(BUILD_DIR)/classes/$(DOMAIN)/$(DEV_NAME)/$(NAME)/*.class
 
 # Package APK with resources, assets, and DEX
-$(APK): $(CLASSES_DEX) $(LIBMAIN)
+$(APK): $(CLASSES_DEX) $(LIBMAIN) $(ASSET_FILES)
 	$(BUILD_TOOLS)/aapt package -f \
-		-M $(BUILD_DIR)/AndroidManifest.xml -S $(BUILD_DIR)/res -A $(BUILD_DIR)/assets \
+		-M $(BUILD_DIR)/AndroidManifest.xml -S $(BUILD_DIR)/res -A assets \
 		-I $(SDK)/platforms/android-$(API_VERSION)/android.jar -F $@ $(BUILD_DIR)/dex
 	cp -v $(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/libc++_shared.so lib/$(ABI)/
 	$(BUILD_TOOLS)/aapt add $@ $(LIBMAIN) lib/$(ABI)/libc++_shared.so
@@ -205,8 +206,17 @@ externals/openssl/OpenSSL_$(OPENSSL_VERSION)_$(ABI).tar.gz:
 
 # Install APK to device/emulator
 .PHONY: install
-install: $(SIGNED_APK)
-	$(SDK)/platform-tools/adb install -r $<
+install: stop $(SIGNED_APK)
+	$(SDK)/platform-tools/adb install -r $(SIGNED_APK)
+
+.PHONY: run
+run: install
+	sleep 1
+	$(SDK)/platform-tools/adb shell am start -n $(PACKAGE_NAME)/$(PACKAGE_NAME).NativeLoader
+
+.PHONY: stop
+stop:
+	$(SDK)/platform-tools/adb shell am force-stop $(PACKAGE_NAME)
 
 # Clean build artifacts
 .PHONY: clean clean-apk clean-main
