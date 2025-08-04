@@ -6,15 +6,16 @@ NAME := game
 DEV_NAME := raylib
 API_VERSION := 31
 ABI ?= armeabi-v7a
-SRC := $(wildcard src/*.cpp)
+SRC := src/main.cpp
 TARGET := Android
 
 # ==============================================================================
 # Paths
 # ==============================================================================
+KERNEL_NAME := $(shell uname)
 BUILD_DIR := $(CURDIR)/android/build
-SDK := $(CURDIR)/android/sdk/$(shell uname)
-NDK := $(CURDIR)/android/ndk/$(shell uname)/android-ndk-r25b
+SDK := $(CURDIR)/android/sdk/$(KERNEL_NAME)
+NDK := $(CURDIR)/android/ndk/$(KERNEL_NAME)/android-ndk-r25b
 JAVA_HOME := /usr/lib/jvm/java-21-openjdk
 BUILD_TOOLS := $(SDK)/build-tools/36.0.0
 TOOLCHAIN := $(NDK)/toolchains/llvm/prebuilt/linux-x86_64
@@ -155,7 +156,8 @@ $(LIBMAIN): $(SRC) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
 		-Wl,-z,noexecstack \
 		-Wl,-z,relro \
 		-Wl,-z,now \
-		-Wl,--warn-shared-textrel -Wl,--fatal-warnings \
+		-Wl,--warn-shared-textrel \
+		-Wl,--fatal-warnings \
 		-u ANativeActivity_onCreate \
 		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \
 		-L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
