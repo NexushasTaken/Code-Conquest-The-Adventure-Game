@@ -1,6 +1,14 @@
-build
-android
+./build
 *.apk*
 
 .cache
 src/com/raylib/game/R.java
+android/sdk
+android/ndk
+android/build/assets
+android/build/classes/com/raylib/game
+android/build/dex
+android/build/lib
+android/build/obj/com/raylib/game
+android/build/res
+android/build/src/com/raylib/game/R.java
