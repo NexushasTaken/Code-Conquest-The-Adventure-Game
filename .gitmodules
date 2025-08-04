@@ -3,15 +3,3 @@
   url = https://github.com/raysan5/raylib
   branch = 5.5
   shallow = 1
-
-[submodule "cpr"]
-  path = externals/cpr
-  url = https://github.com/libcpr/cpr
-  branch = 1.12.0
-  shallow = 1
-
-[submodule "curl"]
-  path = externals/curl
-  url = https://github.com/curl/curl
-  branch = curl-8_15_0
-  shallow = 1
