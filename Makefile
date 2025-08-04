@@ -76,7 +76,7 @@ INCLUDES := -I. -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysro
 # ==============================================================================
 # Output Files and Directories
 # ==============================================================================
-LIB_DIR := lib/$(TARGET)/$(ABI)
+LIB_DIR := $(BUILD_DIR)/lib/$(TARGET)/$(ABI)
 LIBRAYLIB := $(LIB_DIR)/libraylib.a
 LIBNATIVE_APP_GLUE := $(LIB_DIR)/libnative_app_glue.a
 LIBMAIN := $(BUILD_DIR)/lib/$(ABI)/libmain.so
