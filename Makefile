@@ -1,11 +1,12 @@
 # ==============================================================================
 # Configuration
 # ==============================================================================
+DOMAIN := com
 NAME := game
 DEV_NAME := raylib
 API_VERSION := 31
 ABI ?= armeabi-v7a
-SRC := src/*.cpp
+SRC := $(wildcard src/*.cpp)
 TARGET := Android
 
 # ==============================================================================
@@ -78,12 +79,17 @@ LIB_DIR := lib/$(TARGET)/$(ABI)
 LIBRAYLIB := $(LIB_DIR)/libraylib.a
 LIBNATIVE_APP_GLUE := $(LIB_DIR)/libnative_app_glue.a
 LIBMAIN := $(BUILD_DIR)/lib/$(ABI)/libmain.so
-R_JAVA := $(BUILD_DIR)/src/com/$(DEV_NAME)/$(NAME)/R.java
-NATIVE_LOADER_CLASS := $(BUILD_DIR)/classes/com/$(DEV_NAME)/$(NAME)/NativeLoader.class
+R_JAVA := $(BUILD_DIR)/src/$(DOMAIN)/$(DEV_NAME)/$(NAME)/R.java
+NATIVE_LOADER_SRC := $(BUILD_DIR)/src/$(DOMAIN)/$(DEV_NAME)/$(NAME)/NativeLoader.java
+NATIVE_LOADER_CLASS := $(BUILD_DIR)/classes/$(DOMAIN)/$(DEV_NAME)/$(NAME)/NativeLoader.class
 CLASSES_DEX := $(BUILD_DIR)/dex/classes.dex
 APK := $(NAME).apk
 ALIGNED_APK := $(NAME).aligned.apk
-SIGNED_APK := $(NAME).signed.apk
+SIGNED_APK := $(DOMAIN).$(DEV_NAME).$(NAME).apk
+
+# Resource files (explicitly listed to avoid wildcard issues)
+RES_FILES := $(wildcard $(BUILD_DIR)/res/*/*) $(BUILD_DIR)/AndroidManifest.xml
+ASSET_FILES := $(wildcard assets/*)
 
 # ==============================================================================
 # Targets
@@ -111,7 +117,7 @@ $(BUILD_DIR)/res/drawable-xhdpi/icon.png: assets/icon_xhdpi.png
 	cp $< $@
 
 # Copy assets to build directory
-$(BUILD_DIR)/assets: assets/*
+$(BUILD_DIR)/assets: $(ASSET_FILES)
 	@mkdir -p $@
 	cp -r assets/* $@
 
@@ -145,7 +151,10 @@ $(LIBMAIN): $(SRC) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
 	@mkdir -p $(@D)
 	$(CXX) $(SRC) -o $@ -shared \
 		-Wl,--exclude-libs,libatomic.a \
-		-Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now \
+		-Wl,--build-id \
+		-Wl,-z,noexecstack \
+		-Wl,-z,relro \
+		-Wl,-z,now \
 		-Wl,--warn-shared-textrel -Wl,--fatal-warnings \
 		-u ANativeActivity_onCreate \
 		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \
@@ -155,7 +164,7 @@ $(LIBMAIN): $(SRC) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
 		$(INCLUDES) $(FLAGS) $(ABI_FLAGS)
 
 # Generate R.java from resources
-$(R_JAVA): $(BUILD_DIR)/AndroidManifest.xml copy-assets
+$(R_JAVA): $(RES_FILES)
 	@mkdir -p $(@D)
 	$(BUILD_TOOLS)/aapt package -f -m \
 		-S $(BUILD_DIR)/res -J $(BUILD_DIR)/src \
@@ -163,19 +172,18 @@ $(R_JAVA): $(BUILD_DIR)/AndroidManifest.xml copy-assets
 		-I $(SDK)/platforms/android-$(API_VERSION)/android.jar
 
 # Compile NativeLoader.java and R.java
-$(NATIVE_LOADER_CLASS): $(R_JAVA) $(BUILD_DIR)/src/com/$(DEV_NAME)/$(NAME)/NativeLoader.java
+$(NATIVE_LOADER_CLASS): $(R_JAVA) $(NATIVE_LOADER_SRC)
 	@mkdir -p $(BUILD_DIR)/classes
 	$(JAVA_HOME)/bin/javac -verbose -source 1.8 -target 1.8 \
 		-classpath $(SDK)/platforms/android-$(API_VERSION)/android.jar \
-		-sourcepath $(BUILD_DIR)/src $(R_JAVA) \
-		-d $(BUILD_DIR)/classes \
-		$(BUILD_DIR)/src/com/$(DEV_NAME)/$(NAME)/NativeLoader.java
+		-sourcepath $(BUILD_DIR)/src $(R_JAVA) $(NATIVE_LOADER_SRC) \
+		-d $(BUILD_DIR)/classes
 
 # Generate classes.dex from Java classes
 $(CLASSES_DEX): $(NATIVE_LOADER_CLASS)
 	@mkdir -p $(BUILD_DIR)/dex
 	$(BUILD_TOOLS)/d8 --classpath $(SDK)/platforms/android-$(API_VERSION)/android.jar \
-		--output $(BUILD_DIR)/dex $(BUILD_DIR)/classes/com/$(DEV_NAME)/$(NAME)/*.class
+		--output $(BUILD_DIR)/dex $(BUILD_DIR)/classes/$(DOMAIN)/$(DEV_NAME)/$(NAME)/*.class
 
 # Package APK with resources, assets, and DEX
 $(APK): $(CLASSES_DEX) $(LIBMAIN)
@@ -194,7 +202,6 @@ $(SIGNED_APK): $(ALIGNED_APK)
 		--ks android/$(DEV_NAME).keystore \
 		--ks-pass pass:$(DEV_NAME) \
 		--out $@ $<
-	mv $@ $(APK)
 
 # Install APK to device/emulator
 .PHONY: install
@@ -204,7 +211,7 @@ install: $(APK)
 # Clean build artifacts
 .PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR) $(LIB_DIR) $(APK) $(ALIGNED_APK)
+	#rm -rf $(BUILD_DIR) $(LIB_DIR) $(APK) $(ALIGNED_APK)
 	$(MAKE) -C externals/raylib/src clean
 
 # ==============================================================================
