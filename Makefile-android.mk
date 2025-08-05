@@ -83,7 +83,7 @@ OBJ := $(SRC:%=$(LIB_DIR)/%.o)
 # ==============================================================================
 FLAGS := -ffunction-sections -funwind-tables -fstack-protector-strong -fPIC -Wall \
          -Wa,--noexecstack -Wformat -Werror=format-security -no-canonical-prefixes \
-         -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION)
+         -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION) -std=c++20 -Wno-c++11-narrowing
 LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now \
 		-Wl,--warn-shared-textrel -Wl,--fatal-warnings \
 		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \

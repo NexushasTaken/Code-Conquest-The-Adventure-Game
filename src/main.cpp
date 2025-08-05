@@ -1,82 +1,128 @@
+#include "raylib.h"
+#include "raygui.h"
 #include <curl/curl.h>
-#include <raylib.h>
 #include <string>
 
-std::string response;
-bool requestDone = false;
-CURLM *multi_handle = nullptr;
-CURL *easy_handle = nullptr;
+// #define RAYGUI_IMPLEMENTATION
+// #include "raygui.h"
 
-size_t WriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-  size_t total = size * nmemb;
-  response.append(ptr, total);
-  return total;
-}
+#define CLAY_IMPLEMENTATION
+#include "clay.h"
+#include "./clay_renderer_raylib.c"
 
-void SetupCurlMulti() {
-  curl_global_init(CURL_GLOBAL_ALL);
-  easy_handle = curl_easy_init();
-  multi_handle = curl_multi_init();
-
-  curl_easy_setopt(easy_handle, CURLOPT_URL, "https://httpbin.org/get");
-  curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(easy_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-  curl_easy_setopt(easy_handle, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYHOST, 0L);
-  curl_easy_setopt(easy_handle, CURLOPT_TIMEOUT_MS, 5000L);
-
-  curl_multi_add_handle(multi_handle, easy_handle);
-}
-
-void CleanupCurlMulti() {
-  curl_multi_remove_handle(multi_handle, easy_handle);
-  curl_easy_cleanup(easy_handle);
-  curl_multi_cleanup(multi_handle);
-  curl_global_cleanup();
-}
-
-void UpdateCurlMulti() {
-  int still_running = 0;
-  curl_multi_perform(multi_handle, &still_running);
-
-  if (still_running == 0 && !requestDone) {
-    CURLMsg *msg;
-    int msgs_left;
-    while ((msg = curl_multi_info_read(multi_handle, &msgs_left))) {
-      if (msg->msg == CURLMSG_DONE) {
-        requestDone = true;
-        // Optional: Check result code with msg->data.result
-      }
-    }
+void HandleClayErrors(Clay_ErrorData errorData) {
+  // See the Clay_ErrorData struct for more information
+  printf("%s", errorData.errorText.chars);
+  switch (errorData.errorType) {
+    // etc
   }
 }
 
 int main() {
-  InitWindow(800, 600, "libcurl multi interface + raylib (no threads)");
-  SetTargetFPS(60);
+#ifdef PLATFORM_DESKTOP
+  int SCREEN_WIDTH = 800;
+  int SCREEN_HEIGHT = 600;
+  InitWindow(SCREEN_HEIGHT, SCREEN_WIDTH, "Hello, World");
+#else
+  InitWindow(0, 0, "Hello, World");
+  int SCREEN_WIDTH = GetScreenWidth();
+  int SCREEN_HEIGHT = GetScreenHeight();
+#endif
 
-  SetupCurlMulti();
+  auto font = GetFontDefault();
+
+  auto min_mem_size = Clay_MinMemorySize();
+  Clay_Arena arena =
+      Clay_CreateArenaWithCapacityAndMemory(min_mem_size, malloc(min_mem_size));
+  Clay_Initialize(arena, {SCREEN_WIDTH, SCREEN_HEIGHT}, (Clay_ErrorHandler){HandleClayErrors});
+  Clay_SetMeasureTextFunction(Raylib_MeasureText, &font);
 
   while (!WindowShouldClose()) {
-    UpdateCurlMulti();
+    Clay_SetLayoutDimensions({GetScreenWidth(), GetScreenHeight()});
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    if (requestDone) {
-      DrawText("Request Done!", 20, 20, 20, DARKGREEN);
-      DrawText(TextFormat("Response: %.80s", response.c_str()), 20, 60, 14,
-               DARKGRAY);
-    } else {
-      DrawText("Fetching HTTPS (non-blocking, no threads)...", 20, 20, 20,
-               DARKBLUE);
+    Clay_BeginLayout();
+
+    CLAY({
+      .layout = {
+        .sizing = {
+          .width = CLAY_SIZING_GROW(0),
+          .height = CLAY_SIZING_GROW(0),
+        },
+        .childAlignment = {
+          .x = CLAY_ALIGN_X_CENTER,
+          .y = CLAY_ALIGN_Y_CENTER,
+        },
+        .layoutDirection = CLAY_TOP_TO_BOTTOM,
+      },
+      .backgroundColor = {43, 41, 51, 255},
+    }) {
+
+      CLAY({
+        .layout = {
+          .sizing = {
+            .width = CLAY_SIZING_FIT(0),
+            .height = CLAY_SIZING_FIT(0),
+          },
+          .padding = {
+            .left = 8,
+            .right = 8,
+            .top = 8,
+            .bottom = 8,
+          },
+          .childGap = 16,
+          .childAlignment = {
+            .x = CLAY_ALIGN_X_CENTER,
+            .y = CLAY_ALIGN_Y_TOP,
+          },
+        },
+        .backgroundColor = {63, 61, 81, 255},
+      }) {
+
+        CLAY({
+          .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+          }
+        }) {
+          CLAY_TEXT(CLAY_STRING("Email"), CLAY_TEXT_CONFIG({.textColor = {200, 200, 200, 255}, .fontSize = 40, .letterSpacing = 4}));
+          CLAY_TEXT(CLAY_STRING("Password"), CLAY_TEXT_CONFIG({.textColor = {200, 200, 200, 255}, .fontSize = 40, .letterSpacing = 4}));
+        }
+        CLAY({
+          .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+          }
+        }) {
+          CLAY_TEXT(CLAY_STRING("your-email"), CLAY_TEXT_CONFIG({.textColor = {200, 200, 200, 255}, .fontSize = 40, .letterSpacing = 4}));
+          CLAY({
+            .id = CLAY_ID("input/password"),
+          }) {
+            CLAY_TEXT(CLAY_STRING("your-password"), CLAY_TEXT_CONFIG({.textColor = {200, 200, 200, 255}, .fontSize = 40, .letterSpacing = 4}));
+            static int index = 0;
+            CLAY({
+              .id = CLAY_ID("input/password/caret"),
+              .layout = {
+                .sizing = {
+                  .width = CLAY_SIZING_FIXED(4),
+                  .height = CLAY_SIZING_GROW(0),
+                },
+              },
+              .backgroundColor = {10, 10, 10, 255},
+              .floating = {
+                .attachTo = CLAY_ATTACH_TO_PARENT,
+              },
+            }){}
+          }
+        }
+      }
     }
+
+    auto render_cmd_array = Clay_EndLayout();
+    Clay_Raylib_Render(render_cmd_array, &font);
 
     EndDrawing();
   }
-
-  CleanupCurlMulti();
   CloseWindow();
-  return 0;
 }
+
