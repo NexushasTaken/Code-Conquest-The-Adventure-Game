@@ -221,11 +221,11 @@ stop:
 # Clean build artifacts
 .PHONY: clean clean-apk clean-main
 clean: clean-apk
-	rm -rf $(LIB_DIR)
+	rm -rf $(LIB_DIR) lib
 	$(MAKE) -C externals/raylib/src clean
 
 clean-apk:
-	rm -rf $(APK) $(ALIGNED_APK)
+	rm -rf $(APK) $(ALIGNED_APK) $(SIGNED_APK) $(SIGNED_APK).idsig
 
 clean-main:
 	rm -rf $(LIBMAIN)
