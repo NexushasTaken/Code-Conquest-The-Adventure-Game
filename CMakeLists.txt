@@ -1,15 +1,26 @@
 cmake_minimum_required(VERSION 3.12)
 
-set(SRC ./src/main.cpp)
+set(SRCS
+  ./src/main.cpp
+
+  ./externals/rlImGui/rlImGui.cpp
+  ./externals/imgui/imgui.cpp
+  ./externals/imgui/imgui_internal.h
+  ./externals/imgui/imgui_draw.cpp
+  ./externals/imgui/imgui_tables.cpp
+  ./externals/imgui/imgui_widgets.cpp
+  ./externals/imgui/imgui_demo.cpp
+)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Android" AND PLATFORM STREQUAL "Android")
+if(PLATFORM STREQUAL "Android")
   set(SDK ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME})
   set(NDK ${CMAKE_CURRENT_SOURCE_DIR}/android/ndk/${CMAKE_HOST_SYSTEM_NAME}/android-ndk-r25b)
   set(BUILD_TOOLS_VERSION 36.0.0)
   set(BUILD_TOOLS ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME}/build-tools/${BUILD_TOOLS_VERSION})
 
+  set(CMAKE_SYSTEM_NAME "Android")
   set(CMAKE_SYSTEM_VERSION 31) # API level
   set(CMAKE_ANDROID_NDK ${NDK})
   set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
@@ -32,17 +43,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android" AND PLATFORM STREQUAL "Android")
   endif()
 
   set(ZLIB_LIBRARIES "-lz")
+  set(LINK_LIBRARIES native_app_glue)
 
+  add_library(main SHARED ${SRCS})
 else()
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(CURL REQUIRED libcurl)
   pkg_check_modules(ZLIB REQUIRED zlib)
 
+  add_executable(main ${SRCS})
 endif()
 
 project(Main)
-
-add_library(main SHARED ./src/main.cpp)
 
 target_link_libraries(main ${CURL_LIBRARIES})
 target_include_directories(main PUBLIC ${CURL_INCLUDE_DIRS})
@@ -52,5 +64,8 @@ target_link_libraries(main ${ZLIB_LIBRARIES})
 target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIRS})
 target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
 
+target_include_directories(main PUBLIC ./externals/rlImGui/)
+target_include_directories(main PUBLIC ./externals/imgui/)
+
 add_subdirectory(./externals/raylib/)
-target_link_libraries(main raylib)
+target_link_libraries(main raylib ${LINK_LIBRARIES})

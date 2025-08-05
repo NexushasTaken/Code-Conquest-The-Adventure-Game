@@ -57,14 +57,6 @@ CC := $(TOOLCHAIN)/bin/$(CCTYPE)$(API_VERSION)-clang
 CXX := $(TOOLCHAIN)/bin/$(CCTYPE)$(API_VERSION)-clang++
 
 # ==============================================================================
-# Compiler Flags
-# ==============================================================================
-FLAGS := -ffunction-sections -funwind-tables -fstack-protector-strong -fPIC -Wall \
-         -Wa,--noexecstack -Wformat -Werror=format-security -no-canonical-prefixes \
-         -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION)
-INCLUDES := -I. -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysroot/usr/include
-
-# ==============================================================================
 # Output Files and Directories
 # ==============================================================================
 LIB_DIR := lib/$(TARGET)/$(ABI)
@@ -83,6 +75,28 @@ ASSET_DIR := ./assets
 # Resource files (explicitly listed to avoid wildcard issues)
 RES_FILES := $(wildcard $(BUILD_DIR)/res/*/*) $(BUILD_DIR)/AndroidManifest.xml
 ASSET_FILES := $(shell find $(ASSET_DIR) -type f)
+
+OBJ := $(SRC:%=$(LIB_DIR)/%.o)
+
+# ==============================================================================
+# Compiler Flags
+# ==============================================================================
+FLAGS := -ffunction-sections -funwind-tables -fstack-protector-strong -fPIC -Wall \
+         -Wa,--noexecstack -Wformat -Werror=format-security -no-canonical-prefixes \
+         -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION)
+LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now \
+		-Wl,--warn-shared-textrel -Wl,--fatal-warnings \
+		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \
+		-L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
+		-L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
+		-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl -latomic
+
+INCLUDES += -I. -Isrc -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysroot/usr/include
+INCLUDES += -Iexternals/curl/include
+INCLUDES += -Iexternals/imgui -Iexternals/rlImGui
+INCLUDES += -Iexternals/raylib/src
+
+SRC_FLAGS := -u ANativeActivity_onCreate $(INCLUDES) $(FLAGS) $(ABI_FLAGS)
 
 # ==============================================================================
 # Targets
@@ -139,24 +153,14 @@ $(LIBNATIVE_APP_GLUE): $(NATIVE_APP_GLUE)/android_native_app_glue.c
 		-I$(TOOLCHAIN)/sysroot/usr/include/$(CCTYPE) $(FLAGS) $(ABI_FLAGS)
 	$(AR) rcs $@ $(NATIVE_APP_GLUE)/native_app_glue.o
 
-# Compile main shared library (libmain.so)
-$(LIBMAIN): $(SRC) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
+$(LIB_DIR)/%.cpp.o: %.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(SRC) -o $@ -shared \
-		-Wl,--exclude-libs,libatomic.a \
-		-Wl,--build-id \
-		-Wl,-z,noexecstack \
-		-Wl,-z,relro \
-		-Wl,-z,now \
-		-Wl,--warn-shared-textrel \
-		-Wl,--fatal-warnings \
-		-u ANativeActivity_onCreate \
-		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \
-		-L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
-		-L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
-		-I./externals/curl/include/ \
-		-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl \
-		$(INCLUDES) $(FLAGS) $(ABI_FLAGS)
+	$(CXX) -c $< -o $@ $(SRC_FLAGS) $(FLAGS)
+
+# Compile main shared library (libmain.so)
+$(LIBMAIN): $(OBJ) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
+	@mkdir -p $(@D)
+	$(CXX) $(OBJ) -o $@ -shared $(SRC_FLAGS) $(LD_FLAGS)
 
 # Generate R.java from resources
 $(R_JAVA): $(RES_FILES)

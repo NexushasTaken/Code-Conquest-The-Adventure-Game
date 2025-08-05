@@ -3,3 +3,15 @@
   url = https://github.com/raysan5/raylib
   branch = 5.5
   shallow = 1
+
+[submodule "rlImGui"]
+  path = externals/rlImGui
+  url = https://github.com/raylib-extras/rlImGui
+  branch = main
+  shallow = 1
+
+[submodule "imgui"]
+  path = externals/imgui
+  url = https://github.com/ocornut/imgui
+  branch = v1.92.1
+  shallow = 1
