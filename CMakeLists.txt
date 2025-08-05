@@ -1,12 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 set(SRC ./src/main.cpp)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Android")
-  set(DEV_NAME raylib)
-  set(NAME game)
+if(CMAKE_SYSTEM_NAME STREQUAL "Android" AND PLATFORM STREQUAL "Android")
   set(SDK ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME})
   set(NDK ${CMAKE_CURRENT_SOURCE_DIR}/android/ndk/${CMAKE_HOST_SYSTEM_NAME}/android-ndk-r25b)
   set(BUILD_TOOLS_VERSION 36.0.0)
@@ -15,84 +13,44 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
   set(CMAKE_SYSTEM_VERSION 31) # API level
   set(CMAKE_ANDROID_NDK ${NDK})
   set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
+  set(CMAKE_ANDROID_ARCH_ABI armeabi-v7a)
 
-  set(PLATFORM "Android" CACHE STRING "Target platform for raylib" FORCE)
+  add_library(native_app_glue ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+  target_include_directories(native_app_glue PUBLIC ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/)
 
-  # add_library(native_app_glue ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
-  #target_include_directories(native_app_glue PUBLIC ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/)
+  set(CURL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/include/)
+  if(CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
+    set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/armeabi-v7a/libcurl.a)
+  elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+    set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/arm64-v8a/libcurl.a)
+  elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "x86")
+    set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/x86/libcurl.a)
+  elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "x86_64")
+    set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/x86_64/libcurl.a)
+  else()
+    set(CURL_LIBRARIES "")
+  endif()
 
-  include(UseJava)
-  project(Main CXX)
+  set(ZLIB_LIBRARIES "-lz")
 
-  add_library(main SHARED ${SRC})
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(CURL REQUIRED libcurl)
+  pkg_check_modules(ZLIB REQUIRED zlib)
 
-  set(MANIFEST ${CMAKE_CURRENT_SOURCE_DIR}/src/com/AndroidManifest.xml)
-  set(ANDROID_JAR ${SDK}/platforms/android-${CMAKE_SYSTEM_VERSION}/android.jar)
-  set(RES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/assets/res)
-  set(RES ${RES_DIR}/**/*)
-  set(R_JAVA ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.java)
-
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/)
-  add_custom_command(
-    OUTPUT ${R_JAVA}
-    COMMAND ${BUILD_TOOLS}/aapt package -f -m
-            -S ${CMAKE_CURRENT_SOURCE_DIR}/assets/res
-            -J ${CMAKE_CURRENT_BINARY_DIR}/src
-            -M ${MANIFEST}
-            -I ${ANDROID_JAR}
-    DEPENDS ${MANIFEST} ${RES}
-    COMMENT "Packaging resources and generating R.java using aapt"
-  )
-
-  add_custom_target(generate_resources DEPENDS ${R_JAVA})
-
-  set(NATIVE_LOADER_OUT ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/NativeLoader.class
-                        ${CMAKE_CURRENT_BINARY_DIR}/src/com/${DEV_NAME}/${NAME}/R.class)
-  add_custom_command(
-    OUTPUT ${NATIVE_LOADER_OUT}
-    COMMAND javac -verbose -source 1.8 -target 1.8
-            -bootclasspath jre/lib/rt.jar
-            -classpath ${ANDROID_JAR}
-            -sourcepath src ${R_JAVA}
-            -d ${CMAKE_CURRENT_BINARY_DIR}/src
-            ${CMAKE_CURRENT_SOURCE_DIR}/android/build/src/com/${DEV_NAME}/${NAME}/NativeLoader.java
-    DEPENDS generate_resources
-    COMMENT "Compiling NativeLoader"
-  )
-  add_custom_target(nativeloader DEPENDS ${NATIVE_LOADER_OUT})
-
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dex/)
-  add_custom_command(
-    OUTPUT dex/classes.dex
-    COMMAND ${BUILD_TOOLS}/d8 --classpath ${ANDROID_JAR}
-            --output ${CMAKE_CURRENT_BINARY_DIR}/dex/
-            ${NATIVE_LOADER_OUT}
-    DEPENDS nativeloader
-    COMMENT "Generate classes.dex"
-  )
-  add_custom_target(classes_dex DEPENDS dex/classes.dex)
-
-  add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
-    COMMAND ${BUILD_TOOLS}/aapt package -f
-            -M ${MANIFEST}
-            -S ${CMAKE_CURRENT_SOURCE_DIR}/assets/res # TODO: move /res to another location.
-            -A ${CMAKE_CURRENT_SOURCE_DIR}/assets
-            -I ${ANDROID_JAR}
-            -F ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
-            ${CMAKE_CURRENT_BINARY_DIR}/dex
-    COMMAND ${BUILD_TOOLS}/aapt add ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk
-            ${CMAKE_CURRENT_BINARY_DIR}/libmain.so
-    COMMAND ${BUILD_TOOLS}/zipalign -f 4 ${NAME}.apk ${NAME}.aligned.apk
-    COMMAND ${BUILD_TOOLS}/apksigner sign
-            --ks ${CMAKE_CURRENT_SOURCE_DIR}/android/${DEV_NAME}.keystore
-            --ks-pass pass:${DEV_NAME}
-            --out ${NAME}.signed.apk
-            ${NAME}.aligned.apk
-    COMMAND mv ${NAME}.signed.apk com.${DEV_NAME}.${NAME}.apk
-    DEPENDS nativeloader ${CMAKE_CURRENT_BINARY_DIR}/libmain.so
-    COMMENT "Generate classes.dex"
-  )
-  add_custom_target(apk DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.apk)
 endif()
+
+project(Main)
+
+add_library(main SHARED ./src/main.cpp)
+
+target_link_libraries(main ${CURL_LIBRARIES})
+target_include_directories(main PUBLIC ${CURL_INCLUDE_DIRS})
+target_compile_options(main PUBLIC ${CUR_CFLAGS_OTHER})
+
+target_link_libraries(main ${ZLIB_LIBRARIES})
+target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIRS})
+target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
+
 add_subdirectory(./externals/raylib/)
+target_link_libraries(main raylib)
