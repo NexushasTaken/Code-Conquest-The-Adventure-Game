@@ -2,7 +2,7 @@
 
 ## Raylib and its dependencies
 
-[Raylib](https://www.raylib.com/) is what we're gonna use to make the game itself.
+[Raylib](https://www.raylib.com/) is library we're gonna use to make the game itself, you can think of this library as a Game Engine similar to Godot and Unity, but its too "primitive", because we need to code our own game logics, shape rendering, inputs and so on; but the library itself is super easy if you know **C** Programming Language.
 
 Official Website: https://www.raylib.com/
 
