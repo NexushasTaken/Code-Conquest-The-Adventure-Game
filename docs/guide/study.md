@@ -12,8 +12,9 @@ Github Website: https://github.com/raysan5/raygui
 
 ## For Arts and Study
 
-https://itch.io/game-assets/free
-https://kenney.nl/
+itch.io: https://itch.io/game-assets/free
+
+Another great asset website: https://kenney.nl/
 
 ## C++ Tutorial - My recommended Youtube Channel
 
