@@ -10,6 +10,15 @@ Official Website: https://www.raylib.com/
 
 Github Website: https://github.com/raysan5/raygui
 
+## For Arts and Study
+
+https://itch.io/game-assets/free
+https://kenney.nl/
+
+## C++ Tutorial - My recommended Youtube Channel
+
+Youtube: https://youtu.be/-TkoO8Z07hI?si=TQB49FNL1h7k2aXy
+
 ## Lua scripting language
 
 Nah, ako lang gagamit nito, ikaw na bahala sa Raylib at Raygui, pero check mo nalang mga link para may alam ka.
