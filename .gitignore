@@ -1,5 +1,7 @@
 /lib
 /build
+/build-*
+/compile_commands.json
 *.apk*
 
 /.cache
@@ -15,3 +17,5 @@ src/com/raylib/game/R.java
 /android/build/src/com/raylib/game/R.java
 /externals/openssl/*.tar.gz
 /externals/openssl/openssl_*
+
+*.o

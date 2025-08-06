@@ -12,11 +12,10 @@ set(SRCS
   ./externals/imgui/imgui_demo.cpp
 )
 
+list(APPEND SRCS ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c)
+add_compile_options(-DLUA_COMPAT_5_3)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)  # optional: disable compiler-specific extensions
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++11-narrowing")
 
 if(PLATFORM STREQUAL "Android")
   set(SDK ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME})
@@ -60,16 +59,22 @@ endif()
 
 project(Main)
 
-target_link_libraries(main ${CURL_LIBRARIES})
+target_link_libraries(main PUBLIC ${CURL_LIBRARIES})
 target_include_directories(main PUBLIC ${CURL_INCLUDE_DIRS})
 target_compile_options(main PUBLIC ${CUR_CFLAGS_OTHER})
 
-target_link_libraries(main ${ZLIB_LIBRARIES})
+target_link_libraries(main PUBLIC ${ZLIB_LIBRARIES})
 target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIRS})
 target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
 
 target_include_directories(main PUBLIC ./externals/rlImGui/)
 target_include_directories(main PUBLIC ./externals/imgui/)
 
+target_include_directories(main PUBLIC ./externals/lua/src/)
+
 add_subdirectory(./externals/raylib/)
-target_link_libraries(main raylib ${LINK_LIBRARIES})
+target_link_libraries(main PUBLIC raylib)
+
+add_subdirectory(./externals/sol2)
+target_link_libraries(main PUBLIC sol2)
+target_include_directories(main PUBLIC ./externals/sol2/include/)
