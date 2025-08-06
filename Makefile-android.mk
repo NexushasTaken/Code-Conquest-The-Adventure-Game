@@ -76,27 +76,40 @@ ASSET_DIR := ./assets
 RES_FILES := $(wildcard $(BUILD_DIR)/res/*/*) $(BUILD_DIR)/AndroidManifest.xml
 ASSET_FILES := $(shell find $(ASSET_DIR) -type f)
 
+SRC := src/main.cpp
 OBJ := $(SRC:%=$(LIB_DIR)/%.o)
+
+LUA_SRC := ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c
+LUA_OBJ := $(LUA_SRC:%=$(LIB_DIR)/%.o)
 
 # ==============================================================================
 # Compiler Flags
 # ==============================================================================
-FLAGS := -ffunction-sections -funwind-tables -fstack-protector-strong -fPIC -Wall \
-         -Wa,--noexecstack -Wformat -Werror=format-security -no-canonical-prefixes \
-         -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION) -std=c++20 -Wno-c++11-narrowing
-LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now \
-		-Wl,--warn-shared-textrel -Wl,--fatal-warnings \
-		-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) \
-		-L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
-		-L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
-		-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl -latomic
+# === Android-specific flags ===
+ANDROID_FLAGS := -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION) -u ANativeActivity_onCreate
+ANDROID_FLAGS += -no-canonical-prefixes -fstack-protector-strong -funwind-tables -ffunction-sections -fPIC
 
-INCLUDES += -I. -Isrc -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysroot/usr/include
+# === Compiler warnings and compatibility ===
+CFLAGS := -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing
+
+# === C++ specific flags ===
+CXXFLAGS := -std=c++20
+
+# === Linker flags (Android/libs/system) ===
+LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings \
+	-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) -L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) -L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
+	-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl -latomic
+
+# === Include directories ===
+INCLUDES := -I. -Isrc -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysroot/usr/include
 INCLUDES += -Iexternals/curl/include
-INCLUDES += -Iexternals/imgui -Iexternals/rlImGui
+INCLUDES += -Iexternals/imgui
+INCLUDES += -Iexternals/rlImGui
 INCLUDES += -Iexternals/raylib/src
+INCLUDES += -Iexternals/sol2/include
+INCLUDES += -Iexternals/lua/src
 
-SRC_FLAGS := -u ANativeActivity_onCreate $(INCLUDES) $(FLAGS) $(ABI_FLAGS)
+FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
 
 # ==============================================================================
 # Targets
@@ -149,18 +162,25 @@ $(LIBRAYLIB):
 # Compile Android native app glue
 $(LIBNATIVE_APP_GLUE): $(NATIVE_APP_GLUE)/android_native_app_glue.c
 	@mkdir -p $(LIB_DIR)
-	$(CC) -c $< -o $(NATIVE_APP_GLUE)/native_app_glue.o $(INCLUDES) \
-		-I$(TOOLCHAIN)/sysroot/usr/include/$(CCTYPE) $(FLAGS) $(ABI_FLAGS)
+	$(CC) -c $< -o $(NATIVE_APP_GLUE)/native_app_glue.o \
+		-I$(TOOLCHAIN)/sysroot/usr/include/$(CCTYPE) $(FLAGS) $(CFLAGS)
 	$(AR) rcs $@ $(NATIVE_APP_GLUE)/native_app_glue.o
 
-$(LIB_DIR)/%.cpp.o: %.cpp
+$(LIB_DIR)/%.c.o: %.c
+	@echo "CC"
 	@mkdir -p $(@D)
-	$(CXX) -c $< -o $@ $(SRC_FLAGS) $(FLAGS)
+	$(CC) -c $< -o $@ $(FLAGS) $(CFLAGS)
+
+$(LIB_DIR)/%.cpp.o: %.cpp
+	@echo "CXX"
+	@mkdir -p $(@D)
+	$(CXX) -c $< -o $@ $(FLAGS) $(CXXFLAGS)
 
 # Compile main shared library (libmain.so)
-$(LIBMAIN): $(OBJ) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
+$(LIBMAIN): $(OBJ) $(LUA_OBJ) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
+	@echo "MAIN"
 	@mkdir -p $(@D)
-	$(CXX) $(OBJ) -o $@ -shared $(SRC_FLAGS) $(LD_FLAGS)
+	$(CXX) $(OBJ) -o $@ -shared $(FLAGS) $(CFLAGS) $(CXXFLAGS) $(LDFLAG)
 
 # Generate R.java from resources
 $(R_JAVA): $(RES_FILES)

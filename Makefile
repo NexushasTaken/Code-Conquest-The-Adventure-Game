@@ -10,12 +10,6 @@ ABI ?= armeabi-v7a
 TARGET := Linux
 
 SRC := src/main.cpp
-SRC += externals/rlImGui/rlImGui.cpp
-SRC += externals/imgui/imgui.cpp
-SRC += externals/imgui/imgui_draw.cpp
-SRC += externals/imgui/imgui_tables.cpp
-SRC += externals/imgui/imgui_widgets.cpp
-SRC += externals/imgui/imgui_demo.cpp
 
 ifeq ($(TARGET),Android)
 	include ./Makefile-android.mk
