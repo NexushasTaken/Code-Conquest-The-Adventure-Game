@@ -1,116 +1,140 @@
-# gxbuild
-gxbuild is a build system for applications using C and raylib.
+# Code Conquest - The Adventure Game
 
-## Features
-* Supports building for Windows, Linux, Web and Android
-* Uses shell scripts, making it easy to run on all platforms with minimal prior setup
-* Automates most of the setup process: installing dependencies, downloading and compiling raylib
+Read [Document](./docs/README.md) for game documents
 
-## Setting up
-1. Change the options in `config.sh` to your liking (app name, compiler flags).
-2. If you're on Windows, download [w64devkit](https://github.com/skeeto/w64devkit/releases). Make sure you get a release zip, not the source code. Extract the archive somewhere and run `w64devkit.exe`. On Linux, just open a terminal.
-3. Follow the below instructions for the platform you want to build for.
+Read [Github Desktop](./docs/guide/git.md) for how to setup github desktop.
 
-### Desktop
-1. Run `./setup.sh` to set up the project.
-2. Run `./build.sh` to compile the project.
+## How to setup the game?
 
-### Web
-1. Run `TARGET=Web ./setup.sh` to set up the project. You will need about 1 GB of free space.
-2. Run `TARGET=Web ./build.sh` to compile the project.
+Follow the steps and instruction below to properly setup the game development.
 
-### Android
-1. Download [Java](https://openjdk.java.net/) and extract it somewhere. On Linux, you can also install Java using a package manager (make sure you get the JDK, not just the JRE).
-2. Change the Java path in `config.sh`.
-3. Run `TARGET=Android ./setup.sh` to set up the project. You will need about 5 GB of free space.
-4. Run `TARGET=Android ./build.sh` to compile the project.
+**You can't run the game on your Phone, PC is required.**
 
-### Compiling for Windows from Linux
-1. Install `mingw-w64` using your package manager.
-2. Run `TARGET=Windows_NT ./setup.sh` to set up the project.
-3. Run `TARGET=Windows_NT ./build.sh` to compile the project.
+You need to install `git` and `uv` to setup the Development Environment for VSCode.
 
-## Notes
-raylib currently has some issues on Web and Android platforms, here I've documented some of the issues I've found when creating the [CaveScroller](https://github.com/gtrxAC/cavescroller) game for the [raylib 5K gamejam](https://itch.io/jam/raylib-5k-gamejam). If you have any other issues, you can also check the raylib issue tracker for [Web](https://github.com/raysan5/raylib/issues?q=is%3Aissue+label%3Ahtml5) and [Android](https://github.com/raysan5/raylib/issues?q=is%3Aissue+label%3Aandroid).
+Assuming you already have VSCode installed, so we will be installing `git` and `uv`.
 
-### Web
+Go to [Git Website](https://git-scm.com/downloads), look for **Downloads**, and click **Windows**, find **Git for Windows/x64 Setup**, click it and the *installer* will be download automatically, wait for it until it finished downloading.
 
-#### Save/LoadStorageValue
-`SaveStorageValue` and `LoadStorageValue` save their values in a `storage.data` file internally managed by raylib. raylib on Web (emscripten) does not have a persistent file system, any files created during the runtime of the application are not saved when the user reloads the page.
+After the installer was downloaded, run it:
 
-However, web browsers have a feature called [local storage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) which allows saving values persistently. You can add this to your code to allow saving and loading values on Web, just use the `save` and `load` functions like you would use `SaveStorageValue` and `LoadStorageValue`:
-```c
-#ifdef PLATFORM_WEB
-	#include <emscripten/emscripten.h>
-	#define save(i, v) emscripten_run_script(TextFormat("localStorage.setItem(\"%d\", %d);", i, v))
-	#define load(i) emscripten_run_script_int(TextFormat("localStorage.getItem(\"%d\");", i))
-#else
-	#define save SaveStorageValue
-	#define load LoadStorageValue
-#endif
+- Just click **Next** until you see "Choose the Default Editor used by Git", there should be choices to what Editor you will use:
+
+ - Choose "Use Visual Studio Code as Git's default editor"
+
+ - After that, just click **Next** until it installs, and click **Finish**.
+
+Launch VSCode, if you can't find it, press "Windows" Key on your keyboard, and search for "VSCode" or "Visual Studio Code".
+
+After VSCode is opened, press "Ctrl + Shift + `" on your keyboard, and a terminal(or Command Prompt) should open.
+
+> the backtick or "`" is located above the "Tab" on your keyboard.
+
+Enter this command:
+
+```bash
+powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Android
+> Entering this command should install **uv** software, which is a python package and package manager.
 
-#### File system
-Currently the file system is not accessible on Android. Trying to load any file outside the assets folder results in `Failed to open file`. This means that any user created files cannot be loaded, and `SaveStorageValue`/`LoadStorageValue` don't work.
+> If you don't believe me, see it for your self, go to this website [uv Github Website](https://github.com/astral-sh/uv?tab=readme-ov-file)
 
-Assets such as images and sounds that are bundled into the APK file can still be loaded. gxbuild automatically bundles everything in the `assets` folder into the APK. Note that the `assets` folder is only created after running the `setup.sh` script.
+Next, close VSCode and launch it again.
 
-#### Assets folder
-On Android, the default working directory for loading assets is the `assets` folder. On other platforms, it is usually the directory containing the executable. To make sure your assets are loaded from the same directory on all platforms, you can do this:
+Press "Ctrl + K + O", and find the folder named "Desktop", click it, and click "Select Folder"("Select folder" should be located on bottom right of the window that opens after you pressed "Ctrl + K + O").
 
-```c
-#ifndef PLATFORM_ANDROID
-	ChangeDirectory("assets");
-#endif
+Press "Ctrl + Shift + `" on your keyboard, to open the Command Prompt.
 
-myTexture = LoadTexture("texture.png");
-mySound = LoadSound("sound.wav");
-myFont = LoadFont("font.ttf");
+Clone this repository by entring on the Command Prompt:
 
-#ifndef PLATFORM_ANDROID
-	ChangeDirectory("..");
-#endif
+```bash
+git clone --depth 1 https://github.com/NexushasTaken/Code-Conquest-The-Adventure-Game "Code Conquest - The Adventure Game"
 ```
 
-## GitHub Actions
-GitHub Actions can be set up to automatically build your project when you push new changes, and give your users executables without them having to compile your project. Create a new file called `.github/workflows/main.yml` and paste these contents:
+> Entering this command should download all necessary files for the Development Environment of this Project, which is a Game.
 
-```yml
-name: Build project
-on: push
+> On the Desktop folder, you should see a folder named "Code Conquest - The Adventure Game", you should open VSCode inside this folder, read the next sentence for the next step.
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+Press "Ctrl + K + O", and find the folder named "Desktop", inside of it, you should see "Code Conquest - The Adventure Game", click it or double click it, and click "Select Folder".
 
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup build environment
-        run: |
-          sudo apt update
-          sudo apt install mingw-w64
-          ./setup.sh
-          TARGET=Windows_NT ./setup.sh
-          
-      - name: Build project
-        run: |
-          ./build.sh
-          TARGET=Windows_NT ./build.sh
+Press "Ctrl + Shift + `" on your keyboard, to open the Command Prompt.
 
-      - uses: actions/upload-artifact@v3.0.0
-        with:
-          name: game-linux
-          path: game
-            
-      - uses: actions/upload-artifact@v3.0.0
-        with:
-          name: game-windows
-          path: game.exe
+Enter this command:
+
+```bash
+uv sync
 ```
 
-Replace all instances of `game` with your project's name, the same as defined in `config.sh`. This will only build for Windows and Linux.
+> This command should download python packages required to run the game.
 
-Note that by default, users must be logged in to GitHub to download the executables (artifacts). You can give your users a link like this to let them download without logging in: `https://nightly.link/YOURNAME/YOURREPO/workflows/main/main`. You can read more about this [here](https://nightly.link/).
+> This command should also download python if you dont have it installed yet.
+
+After the command is done, the setup is complete.
+
+## But how to actually run the Game?
+
+This step is always necessary whenever you close the VSCode or the terminal, so that you can actually run the game.
+
+Enter this on Command Prompt:
+
+```bash
+.\.venv\Scripts\activate
+```
+
+> What if there is an error after running the command? then you should run this too:
+
+```bash
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+and then run the command again:
+
+```bash
+.\.venv\Scripts\activate
+```
+
+> after you entered it, you should see "(code-conquest)", indicating that you can run the game.
+
+To run the game, simply just enter:
+
+```bash
+uv run .\src\main.py
+```
+
+> Entering this command should open a window where you can see the game itself.
+
+> As of writing this, you should only see a Login Screen.
+
+There is possibility that after running `uv run .\src\main.py`, you will see this error message:
+
+```sh
+Traceback (most recent call last):
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 209, in <module>
+    main()
+    ~~~~^^
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 203, in main
+    game = GameView()
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 37, in __init__
+    self.client = setup_client()
+                  ~~~~~~~~~~~~^^
+  File "/home/nexus/dev/remote/Code-Conquest-The-Adventure-Game/./src/main.py", line 24, in setup_client
+    raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set")
+RuntimeError: SUPABASE_URL and SUPABASE_KEY must be set
+```
+
+That's because, you need the `.env` **file** that is located on inside "Code Conquest - The Adventure Game".
+
+the file must contain a string with the name of `SUPABASE_URL` and `SUPABASE_KEY`.
+
+Ask your leader for the actual contents of the `.env` file.
+
+The contents of the file must be similar to this:
+
+```sh
+SUPABASE_URL="<supabase-project-url>"
+SUPABASE_KEY="<supabase-project-key>"
+```
+
+> why i didn't include `.env` file on this github repository? it's for security reason, since, this repository is public, meaning any people can access repository, and these SUPABASE_URL and SUPABASE_KEY is similar to password, but for Supabase projects.
+
