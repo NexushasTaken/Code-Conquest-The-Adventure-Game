@@ -15,3 +15,9 @@
   url = https://github.com/ocornut/imgui
   branch = v1.92.1
   shallow = 1
+
+[submodule "sol2"]
+  path = externals/sol2
+  url = https://github.com/ThePhD/sol2
+  branch = v3.5.0
+  shallow = 1
