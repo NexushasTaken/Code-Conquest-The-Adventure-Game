@@ -90,7 +90,7 @@ ANDROID_FLAGS := -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION) -
 ANDROID_FLAGS += -no-canonical-prefixes -fstack-protector-strong -funwind-tables -ffunction-sections -fPIC
 
 # === Compiler warnings and compatibility ===
-CFLAGS := -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing
+CFLAGS := -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing -DLUA_COMPAT_5_3
 
 # === C++ specific flags ===
 CXXFLAGS := -std=c++20
@@ -163,24 +163,21 @@ $(LIBRAYLIB):
 $(LIBNATIVE_APP_GLUE): $(NATIVE_APP_GLUE)/android_native_app_glue.c
 	@mkdir -p $(LIB_DIR)
 	$(CC) -c $< -o $(NATIVE_APP_GLUE)/native_app_glue.o \
-		-I$(TOOLCHAIN)/sysroot/usr/include/$(CCTYPE) $(FLAGS) $(CFLAGS)
+		-I$(TOOLCHAIN)/sysroot/usr/include/$(CCTYPE) $(FLAGS) $(CFLAGS) $(ANDROID_FLAGS)
 	$(AR) rcs $@ $(NATIVE_APP_GLUE)/native_app_glue.o
 
 $(LIB_DIR)/%.c.o: %.c
-	@echo "CC"
 	@mkdir -p $(@D)
 	$(CC) -c $< -o $@ $(FLAGS) $(CFLAGS)
 
 $(LIB_DIR)/%.cpp.o: %.cpp
-	@echo "CXX"
 	@mkdir -p $(@D)
 	$(CXX) -c $< -o $@ $(FLAGS) $(CXXFLAGS)
 
 # Compile main shared library (libmain.so)
 $(LIBMAIN): $(OBJ) $(LUA_OBJ) $(LIBRAYLIB) $(LIBNATIVE_APP_GLUE)
-	@echo "MAIN"
 	@mkdir -p $(@D)
-	$(CXX) $(OBJ) -o $@ -shared $(FLAGS) $(CFLAGS) $(CXXFLAGS) $(LDFLAG)
+	$(CXX) $(OBJ) $(LUA_OBJ) -o $@ -shared $(FLAGS) $(CFLAGS) $(CXXFLAGS) $(LD_FLAGS) $(ANDROID_FLAGS)
 
 # Generate R.java from resources
 $(R_JAVA): $(RES_FILES)

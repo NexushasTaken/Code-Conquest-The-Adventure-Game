@@ -25,3 +25,8 @@ build-linux-make:
 
 run-linux: build-linux
   ./build-linux/main
+
+clean:
+  make TARGET=Android clean
+  make clean
+  rm -rf build build-android build-linux
