@@ -16,6 +16,10 @@ itch.io: https://itch.io/game-assets/free
 
 Another great asset website: https://kenney.nl/
 
+Panoorin mo to para alam mo kung paano gumagana at itsura nang game.
+
+Rogue like Game but for Programming: https://youtu.be/FVYxdMw-iRc?si=Af9-7916jdXLEjr4
+
 ## C++ Tutorial - My recommended Youtube Channel
 
 Youtube: https://youtu.be/-TkoO8Z07hI?si=TQB49FNL1h7k2aXy
