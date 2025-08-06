@@ -13,8 +13,8 @@
 
 int main() {
 #ifdef PLATFORM_DESKTOP
-  int SCREEN_WIDTH = 800;
-  int SCREEN_HEIGHT = 600;
+  int SCREEN_WIDTH = 600;
+  int SCREEN_HEIGHT = 800;
   InitWindow(SCREEN_HEIGHT, SCREEN_WIDTH, "Hello, World");
 #else
   InitWindow(0, 0, "Hello, World");
