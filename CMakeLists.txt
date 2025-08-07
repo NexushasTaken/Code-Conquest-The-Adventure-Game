@@ -77,4 +77,6 @@ target_link_libraries(main PUBLIC raylib)
 
 add_subdirectory(./externals/sol2)
 target_link_libraries(main PUBLIC sol2)
-target_include_directories(main PUBLIC ./externals/sol2/include/)
+
+add_subdirectory(./externals/json)
+target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
