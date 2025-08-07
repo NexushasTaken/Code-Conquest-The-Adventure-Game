@@ -19,3 +19,4 @@ src/com/raylib/game/R.java
 /externals/openssl/openssl_*
 
 *.o
+.env
