@@ -115,8 +115,19 @@ INCLUDES += -Iexternals/sol2/include
 INCLUDES += -Iexternals/lua/src
 INCLUDES += -Iexternals/json/include
 INCLUDES += -Iexternals/cpr/include
+INCLUDES += -I$(BUILD_DIR)
 
 FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
+
+# ==============================================================================
+# Idk
+# ==============================================================================
+cpr_VERSION_MAJOR := 1
+cpr_VERSION_MINOR := 12
+cpr_VERSION_PATCH := 0
+
+cpr_VERSION := $(shell printf "%d.%d.%d\n" $(cpr_VERSION_MAJOR) $(cpr_VERSION_MINOR) $(cpr_VERSION_PATCH) )
+cpr_VERSION_NUM := $(shell printf "0x%X\n" $$(( $(cpr_VERSION_MAJOR) * 0x10000 + $(cpr_VERSION_MINOR) * 0x100 + $(cpr_VERSION_PATCH) )))
 
 # ==============================================================================
 # Targets
@@ -124,7 +135,20 @@ FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
 
 # Default target: Build the signed APK
 .PHONY: all
-all: $(SIGNED_APK)
+all: pre $(SIGNED_APK)
+
+.PHONY: pre
+pre: $(BUILD_DIR)/cpr/cprver.h
+
+$(BUILD_DIR)/cpr/cprver.h: externals/cpr/cmake/cprver.h.in
+	mkdir -p $(dir $@)
+	sed \
+		-e 's/$${cpr_VERSION_MAJOR}/$(cpr_VERSION_MAJOR)/g' \
+		-e 's/$${cpr_VERSION_MINOR}/$(cpr_VERSION_MINOR)/g' \
+		-e 's/$${cpr_VERSION_PATCH}/$(cpr_VERSION_PATCH)/g' \
+		-e 's/$${cpr_VERSION_NUM}/$(cpr_VERSION_NUM)/g' \
+		-e 's/$${cpr_VERSION}/$(cpr_VERSION)/g' \
+		$< > $@
 
 # Build Raylib static library
 $(LIBRAYLIB):

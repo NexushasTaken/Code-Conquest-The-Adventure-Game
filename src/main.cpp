@@ -1,5 +1,6 @@
 #include "raygui.h"
 #include "raylib.h"
+#include <cpr/cpr.h>
 #include <cstdlib>
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -25,8 +26,8 @@
 #include "env.h"
 
 #ifdef PLATFORM_ANDROID
-const SCREEN_WIDTH = 0;
-const SCREEN_HEIGHT = 0;
+const int SCREEN_WIDTH = 0;
+const int SCREEN_HEIGHT = 0;
 #else
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
@@ -106,11 +107,11 @@ struct Auth {
 
   void sign_in_anonymously() {
     // Reset the CURL handle to avoid stale state
-    //if (curl) {
+    // if (curl) {
     //  curl_easy_cleanup(curl);
     //}
-    //curl = curl_easy_init();
-    //if (!curl) {
+    // curl = curl_easy_init();
+    // if (!curl) {
     //  TraceLog(LOG_ERROR, "curl_easy_init: Failed to initialize easy_handle");
     //  return;
     //}
@@ -218,6 +219,15 @@ void draw_ui(GuiContext &ctx, Client &client) {
 }
 
 int main() {
+  cpr::Response r = cpr::Get(
+      cpr::Url{"https://api.github.com/repos/whoshuu/cpr/contributors"},
+      cpr::Authentication{"user", "pass", cpr::AuthMode::BASIC},
+      cpr::Parameters{{"anon", "true"}, {"key", "value"}});
+  std::cout << r.text << std::endl;
+  return 0;
+}
+
+int main2() {
 #ifdef PLATFORM_DESKTOP
   ChangeDirectory("assets");
 #endif
