@@ -2,7 +2,7 @@ BUILD_DIR := build
 SRC := src/main.cpp
 OBJ := $(SRC:%=$(BUILD_DIR)/%.o)
 
-INCLUDE := -Isrc -Iexternals/sol2/include/ -Iexternals/lua/src
+INCLUDE := -Isrc -Iexternals/sol2/include/ -Iexternals/lua/src -Iexternals/json/include
 LDFLAGS := -lraylib -lcurl
 CXXFLAGS := $(INCLUDE) -std=c++20
 CFLAGS := $(INCLUDE) -DLUA_COMPAT_5_3

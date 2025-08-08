@@ -108,6 +108,7 @@ INCLUDES += -Iexternals/rlImGui
 INCLUDES += -Iexternals/raylib/src
 INCLUDES += -Iexternals/sol2/include
 INCLUDES += -Iexternals/lua/src
+INCLUDES += -Iexternals/json/include
 
 FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
 
