@@ -1,11 +1,15 @@
 configure-linux:
-  cmake -B build-linux -DTARGET=Linux --fresh
+  cmake -B build-linux -DPLATFORM=Desktop --fresh \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+    -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
   ln -sf build-linux/compile_commands.json compile_commands.json
 
-#-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-#-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 configure-android:
-  cmake -B build-android -DTARGET=Android --fresh
+  cmake -B build-android -DPLATFORM=Android --fresh \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+    -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
   ln -sf build-android/compile_commands.json compile_commands.json
 
 build-linux:
@@ -25,6 +29,9 @@ build-linux-make:
 
 run-linux: build-linux
   ./build-linux/main
+
+debug-linux: build-linux
+  gdb ./build-linux/main
 
 clean:
   make TARGET=Android clean

@@ -80,3 +80,4 @@ target_link_libraries(main PUBLIC sol2)
 
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
+
