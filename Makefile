@@ -9,10 +9,20 @@ API_VERSION := 31
 ABI ?= armeabi-v7a
 TARGET := Linux
 include .env
+BUILD_TYPE := Debug
 
 SRC := src/main.cpp
-CFLAGS := -DSUPABASE_URL=$(SUPABASE_URL) -DSUPABASE_KEY=$(SUPABASE_KEY)
-CXXFLAGS := $(CFLAGS)
+CFLAGS :=
+CXXFLAGS := -DSUPABASE_URL=$(SUPABASE_URL) -DSUPABASE_KEY=$(SUPABASE_KEY)
+
+ifeq ($(BUILD_TYPE),Debug)
+	CFLAGS += -ggdb
+	CXXFLAGS += -ggdb
+endif
+ifeq ($(BUILD_TYPE),Release)
+	CFLAGS += -O2
+	CXXFLAGS += -O2
+endif
 
 ifeq ($(TARGET),Android)
 	include ./Makefile-android.mk

@@ -36,6 +36,9 @@ run-linux: build-linux
 debug-linux: build-linux
   gdb ./build-linux/main
 
+debug-linux-make: build-linux-make
+  gdb ./build-linux/game
+
 clean:
   make TARGET=Android clean
   make clean

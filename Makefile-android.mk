@@ -90,10 +90,10 @@ ANDROID_FLAGS := -DANDROID -DPLATFORM_ANDROID -D__ANDROID_API__=$(API_VERSION) -
 ANDROID_FLAGS += -no-canonical-prefixes -fstack-protector-strong -funwind-tables -ffunction-sections -fPIC
 
 # === Compiler warnings and compatibility ===
-CFLAGS := -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing -DLUA_COMPAT_5_3
+CFLAGS += -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing -DLUA_COMPAT_5_3
 
 # === C++ specific flags ===
-CXXFLAGS := -std=c++17
+CXXFLAGS += -std=c++17
 
 # === Linker flags (Android/libs/system) ===
 LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings \
