@@ -1,6 +1,5 @@
 #include "raygui.h"
 #include "raylib.h"
-#include "utils.h"
 #include <cstdlib>
 #include <curl/curl.h>
 #include <curl/easy.h>

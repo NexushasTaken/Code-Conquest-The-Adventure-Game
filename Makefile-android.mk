@@ -93,16 +93,20 @@ ANDROID_FLAGS += -no-canonical-prefixes -fstack-protector-strong -funwind-tables
 CFLAGS := -Wall -Wa,--noexecstack -Wformat -Werror=format-security -Wno-c++11-narrowing -DLUA_COMPAT_5_3
 
 # === C++ specific flags ===
-CXXFLAGS := -std=c++20
+CXXFLAGS := -std=c++17
 
 # === Linker flags (Android/libs/system) ===
 LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings \
-	-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) -L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) -L. -L$(BUILD_DIR)/obj -L$(LIB_DIR) -L./externals/curl/${ABI} \
-	-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -lcurl -latomic
+	-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) -L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
+	-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -latomic -lcurl
+LD_FLAGS += -L. -L$(BUILD_DIR)/obj -L$(LIB_DIR)
+LD_FLAGS += -Lexternals/curl/${ABI}/lib
+LD_FLAGS += -Lexternals/openssl/${ABI}/lib
 
 # === Include directories ===
 INCLUDES := -I. -Isrc -Iinclude -I../include -I$(NATIVE_APP_GLUE) -I$(TOOLCHAIN)/sysroot/usr/include
-INCLUDES += -Iexternals/curl/include
+INCLUDES += -Iexternals/curl/${ABI}/include
+INCLUDES += -Lexternals/openssl/${ABI}/include
 INCLUDES += -Iexternals/imgui
 INCLUDES += -Iexternals/rlImGui
 INCLUDES += -Iexternals/raylib/src
