@@ -33,6 +33,9 @@ build-linux-make:
 run-linux: build-linux
   ./build-linux/main
 
+run-linux-make: build-linux-make
+  ./build-linux/main
+
 debug-linux: build-linux
   gdb ./build-linux/main
 
