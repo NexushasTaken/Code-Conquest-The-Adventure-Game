@@ -67,6 +67,23 @@ add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
 
 file(READ "${CMAKE_SOURCE_DIR}/.env" DOTENV)
-string(REGEX MATCH "SUPABASE_URL=([^\n\r]+)" SUPABASE_URL "${DOTENV}")
-string(REGEX MATCH "SUPABASE_KEY=([^\n\r]+)" SUPABASE_KEY "${DOTENV}")
-target_compile_definitions(main PRIVATE -D${SUPABASE_URL} -D${SUPABASE_KEY})
+
+string(REGEX MATCH "SUPABASE_URL=([^\n\r]+)" SUPABASE_URL_LINE "${DOTENV}")
+string(REGEX MATCH "SUPABASE_KEY=([^\n\r]+)" SUPABASE_KEY_LINE "${DOTENV}")
+
+# Extract value after '='
+string(REGEX REPLACE "SUPABASE_URL=(.+)" "\\1" SUPABASE_URL_RAW "${SUPABASE_URL_LINE}")
+string(REGEX REPLACE "SUPABASE_KEY=(.+)" "\\1" SUPABASE_KEY_RAW "${SUPABASE_KEY_LINE}")
+
+# Strip ALL single and double quotes from start and end
+string(REGEX REPLACE "^['\"]+|['\"]+$" "" SUPABASE_URL_CLEAN "${SUPABASE_URL_RAW}")
+string(REGEX REPLACE "^['\"]+|['\"]+$" "" SUPABASE_KEY_CLEAN "${SUPABASE_KEY_RAW}")
+
+# Now add double quotes to pass as proper C++ string literal macros
+set(SUPABASE_URL_DEF "\"${SUPABASE_URL_CLEAN}\"")
+set(SUPABASE_KEY_DEF "\"${SUPABASE_KEY_CLEAN}\"")
+
+target_compile_definitions(main PRIVATE
+  SUPABASE_URL=${SUPABASE_URL_DEF}
+  SUPABASE_KEY=${SUPABASE_KEY_DEF}
+)
