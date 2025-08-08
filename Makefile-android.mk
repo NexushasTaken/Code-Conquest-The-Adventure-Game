@@ -115,7 +115,6 @@ INCLUDES += -Iexternals/sol2/include
 INCLUDES += -Iexternals/lua/src
 INCLUDES += -Iexternals/json/include
 INCLUDES += -Iexternals/cpr/include
-INCLUDES += -I$(BUILD_DIR)
 
 FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
 
@@ -138,9 +137,9 @@ cpr_VERSION_NUM := $(shell printf "0x%X\n" $$(( $(cpr_VERSION_MAJOR) * 0x10000 +
 all: pre $(SIGNED_APK)
 
 .PHONY: pre
-pre: $(BUILD_DIR)/cpr/cprver.h
+pre: src/cpr/cprver.h
 
-$(BUILD_DIR)/cpr/cprver.h: externals/cpr/cmake/cprver.h.in
+src/cpr/cprver.h: externals/cpr/cmake/cprver.h.in
 	mkdir -p $(dir $@)
 	sed \
 		-e 's/$${cpr_VERSION_MAJOR}/$(cpr_VERSION_MAJOR)/g' \
