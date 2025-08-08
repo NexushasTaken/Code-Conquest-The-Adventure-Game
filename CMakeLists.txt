@@ -2,14 +2,6 @@ cmake_minimum_required(VERSION 3.12)
 
 set(SRCS
   ./src/main.cpp
-
-  ./externals/rlImGui/rlImGui.cpp
-  ./externals/imgui/imgui.cpp
-  ./externals/imgui/imgui_internal.h
-  ./externals/imgui/imgui_draw.cpp
-  ./externals/imgui/imgui_tables.cpp
-  ./externals/imgui/imgui_widgets.cpp
-  ./externals/imgui/imgui_demo.cpp
 )
 
 list(APPEND SRCS ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c)
@@ -66,9 +58,6 @@ target_compile_options(main PUBLIC ${CUR_CFLAGS_OTHER})
 target_link_libraries(main PUBLIC ${ZLIB_LIBRARIES})
 target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIRS})
 target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
-
-target_include_directories(main PUBLIC ./externals/rlImGui/)
-target_include_directories(main PUBLIC ./externals/imgui/)
 
 target_include_directories(main PUBLIC ./externals/lua/src/)
 
