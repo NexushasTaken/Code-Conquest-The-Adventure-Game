@@ -16,6 +16,9 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+#define RAYLIB_NUKLEAR_IMPLEMENTATION
+#include "nuklear/raylib-nuklear.h"
+
 #include "./utils.cpp"
 
 #include "nlohmann/json.hpp"
@@ -138,6 +141,7 @@ int main() {
   int SCREEN_WIDTH = GetScreenWidth();
   int SCREEN_HEIGHT = GetScreenHeight();
 #endif
+  struct nk_context *ctx = InitNuklear(10);
 
   SetTargetFPS(60);
 
@@ -151,72 +155,50 @@ int main() {
 
   while (!WindowShouldClose()) {
     client.poll();
+    UpdateNuklear(ctx);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    float padding = 20;
-    float gaps = 4;
-    int rows = 4;
-    int cols = 2;
-    Rectangle parent = {200, 200, 400, 200};
-    Rectangle parent_child = {parent.x + padding, parent.y + padding,
-                              parent.width - padding * 2,
-                              parent.height - padding * 2};
+    // init gui state
+    enum { EASY, HARD };
+    static int op = EASY;
+    static float value = 0.6f;
+    static int i = 20;
 
-    float cell_height = (parent_child.height - gaps * (rows - 1)) / rows;
-    float cell_width = (parent_child.width - gaps * (cols - 1)) / cols;
-    float cell_y_offset = cell_height + gaps;
-    float cell_x_offset = cell_width + gaps;
-
-    GuiGroupBox(parent, "Login");
-    GuiDrawText(
-        "Login",
-        {parent_child.x, parent_child.y, parent_child.width, cell_height},
-        TEXT_ALIGN_CENTER, GetColor(GuiGetStyle(LABEL, TEXT)));
-
-    Rectangle mail_rect = {parent_child.x + cell_x_offset,
-                           parent_child.y + cell_y_offset, cell_width,
-                           cell_height};
-    if (!mail_focus) {
-      mail_focus = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-                   CheckCollisionPointRec(GetMousePosition(), mail_rect);
-      if (mail_focus) {
-        pass_focus = false;
+    //nk_init_fixed(&ctx, calloc(1, MAX_MEMORY), MAX_MEMORY, &font);
+    if (nk_begin(ctx, "Show", nk_rect(50, 50, 220, 220),
+                 NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
+      // fixed widget pixel width
+      nk_layout_row_static(ctx, 30, 80, 1);
+      if (nk_button_label(ctx, "button")) {
+        // event handling
       }
-    }
-    GuiTextBox(mail_rect, mail_buffer, 256, mail_focus);
-    Rectangle pass_rect = {parent_child.x + cell_x_offset,
-                           parent_child.y + cell_y_offset * 2, cell_width,
-                           cell_height};
-    if (!pass_focus) {
-      pass_focus = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-                   CheckCollisionPointRec(GetMousePosition(), pass_rect);
-      if (pass_focus) {
-        mail_focus = false;
+
+      // fixed widget window ratio width
+      nk_layout_row_dynamic(ctx, 30, 2);
+      if (nk_option_label(ctx, "easy", op == EASY))
+        op = EASY;
+      if (nk_option_label(ctx, "hard", op == HARD))
+        op = HARD;
+
+      // custom widget pixel width
+      nk_layout_row_begin(ctx, NK_STATIC, 30, 2);
+      {
+        nk_layout_row_push(ctx, 50);
+        nk_label(ctx, "Volume:", NK_TEXT_LEFT);
+        nk_layout_row_push(ctx, 110);
+        nk_slider_float(ctx, 0, &value, 1.0f, 0.1f);
       }
+      nk_layout_row_end(ctx);
     }
-    GuiTextBox(pass_rect, pass_buffer, 256, pass_focus);
+    nk_end(ctx);
 
-    GuiButton({parent_child.x + cell_x_offset,
-               parent_child.y + cell_y_offset * 3, cell_width, cell_height},
-              "Sign-in");
-
-    GuiDrawText("Email",
-                {parent_child.x, parent_child.y + cell_y_offset * 1, cell_width,
-                 cell_height},
-                TEXT_ALIGN_CENTER, GetColor(GuiGetStyle(LABEL, TEXT)));
-    GuiDrawText("Password",
-                {parent_child.x, parent_child.y + cell_y_offset * 2, cell_width,
-                 cell_height},
-                TEXT_ALIGN_CENTER, GetColor(GuiGetStyle(LABEL, TEXT)));
-    GuiDrawText("Status",
-                {parent_child.x, parent_child.y + cell_y_offset * 3, cell_width,
-                 cell_height},
-                TEXT_ALIGN_CENTER, GetColor(GuiGetStyle(LABEL, TEXT)));
-
+    DrawNuklear(ctx);
     EndDrawing();
   }
+
+  UnloadNuklear(ctx);
 
   CloseWindow();
 
