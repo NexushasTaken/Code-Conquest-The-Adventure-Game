@@ -22,6 +22,14 @@
 
 #include "env.h"
 
+#ifdef PLATFORM_ANDROID
+const SCREEN_WIDTH = 0;
+const SCREEN_HEIGHT = 0;
+#else
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
+#endif
+
 using json = nlohmann::json;
 
 namespace supabase {
@@ -123,6 +131,44 @@ private:
 
 using supabase::Client;
 
+struct GuiContext {
+  nk_context *ctx;
+
+  char mail_buffer[256] = {0};
+  bool mail_focus = false;
+  char pass_buffer[256] = {0};
+  bool pass_focus = false;
+  bool secret = true;
+
+  std::string label;
+};
+
+void draw_ui(GuiContext &ctx) {
+  if (nk_begin(ctx.ctx, "Choose how you want to Sign in",
+               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+               NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
+                   NK_WINDOW_NO_SCROLLBAR)) {
+    nk_layout_row_dynamic(ctx.ctx, 0, 1);
+
+    if (nk_button_label(ctx.ctx, "Sign in")) {
+      ctx.label = "Sign in was clicked!";
+    }
+
+    if (nk_button_label(ctx.ctx, "Sign up")) {
+      ctx.label = "Sign up was clicked!";
+    }
+
+    if (nk_button_label(ctx.ctx, "Sign in as Anonymous")) {
+      ctx.label = "Anonymous was clicked!";
+    }
+
+    nk_label(ctx.ctx, ctx.label.c_str(), NK_TEXT_CENTERED);
+  }
+  nk_end(ctx.ctx);
+}
+
 int main() {
 #ifdef PLATFORM_DESKTOP
   ChangeDirectory("assets");
@@ -137,68 +183,35 @@ int main() {
   if (api_url.empty()) {
     TraceLog(LOG_FATAL, "%s", "supabaseUrl is required");
   }
+  curl_global_init(CURL_GLOBAL_DEFAULT);
   Client client(api_key, api_url);
 
-#ifdef PLATFORM_DESKTOP
-  int SCREEN_WIDTH = 800;
-  int SCREEN_HEIGHT = 600;
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
-#else
-  InitWindow(0, 0, "Hello, World");
-  int SCREEN_WIDTH = GetScreenWidth();
-  int SCREEN_HEIGHT = GetScreenHeight();
-#endif
-  struct nk_context *ctx = InitNuklear(40);
+
+  GuiContext ctx;
+  ctx.ctx = InitNuklear(18);
 
   SetTargetFPS(60);
-
-  GuiSetStyle(DEFAULT, TEXT_SIZE, 40);
-
-  char mail_buffer[256] = {0};
-  bool mail_focus = false;
-  char pass_buffer[256] = {0};
-  bool pass_focus = false;
-  bool secret = true;
 
   std::string label = "Waiting...";
 
   while (!WindowShouldClose()) {
-    //client.poll();
-    UpdateNuklear(ctx);
+    client.poll();
+    UpdateNuklear(ctx.ctx);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    if (nk_begin(ctx, "Login as Anonymous", nk_rect(20, 20, SCREEN_WIDTH - 40, SCREEN_HEIGHT - 40),
-                 NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE | NK_WINDOW_SCALABLE | NK_WINDOW_NO_SCROLLBAR)) {
-      nk_layout_row_dynamic(ctx, 0, 1);
+    draw_ui(ctx);
 
-      nk_label(ctx, "Login as Anonymous", NK_TEXT_CENTERED);
-
-      nk_layout_row_dynamic(ctx, 0, 2);
-      if (nk_button_label(ctx, "Load .env.json")) {
-        //label = "Login was clicked!";
-        label = LoadFileText("env.json");
-      }
-      if (nk_button_label(ctx, "Load hello_world.txt")) {
-        //label = "Back was clicked!";
-        label = LoadFileText("hello_world.txt");
-      }
-
-      nk_layout_row_dynamic(ctx, 0, 1);
-      nk_label(ctx, label.c_str(), NK_TEXT_CENTERED);
-      nk_label(ctx, GetApplicationDirectory(), NK_TEXT_CENTERED);
-
-    }
-    nk_end(ctx);
-
-    DrawNuklear(ctx);
+    DrawNuklear(ctx.ctx);
     EndDrawing();
   }
 
-  UnloadNuklear(ctx);
+  UnloadNuklear(ctx.ctx);
 
   CloseWindow();
 
   curl_global_cleanup();
+  return 0;
 }
