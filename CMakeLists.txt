@@ -66,3 +66,7 @@ target_link_libraries(main PUBLIC sol2)
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
 
+file(READ "${CMAKE_SOURCE_DIR}/.env" DOTENV)
+string(REGEX MATCH "SUPABASE_URL=([^\n\r]+)" SUPABASE_URL "${DOTENV}")
+string(REGEX MATCH "SUPABASE_KEY=([^\n\r]+)" SUPABASE_KEY "${DOTENV}")
+target_compile_definitions(main PRIVATE -D${SUPABASE_URL} -D${SUPABASE_KEY})

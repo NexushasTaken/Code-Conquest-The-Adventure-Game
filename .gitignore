@@ -20,4 +20,3 @@ src/com/raylib/game/R.java
 
 *.o
 .env
-.env.json

@@ -98,7 +98,7 @@ CXXFLAGS := -std=c++17
 # === Linker flags (Android/libs/system) ===
 LD_FLAGS := -Wl,--build-id -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings \
 	-L$(TOOLCHAIN)/sysroot/usr/lib/$(LIBPATH)/$(API_VERSION) -L$(TOOLCHAIN)/lib/clang/17/lib/linux/$(ARCH) \
-	-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -latomic -lcurl
+	-lraylib -lnative_app_glue -llog -landroid -lEGL -lGLESv2 -lOpenSLES -lz -lc -lm -ldl -latomic -lcurl -lssl -lcrypto
 LD_FLAGS += -L. -L$(BUILD_DIR)/obj -L$(LIB_DIR)
 LD_FLAGS += -Lexternals/curl/${ABI}/lib
 LD_FLAGS += -Lexternals/openssl/${ABI}/lib
@@ -123,36 +123,6 @@ FLAGS := $(INCLUDES) $(ANDROID_FLAGS)
 # Default target: Build the signed APK
 .PHONY: all
 all: $(SIGNED_APK)
-
-# Copy icons to resolution-specific directories
-$(BUILD_DIR)/res/drawable-ldpi/icon.png: assets/icon_ldpi.png
-	@mkdir -p $(@D)
-	cp $< $@
-
-$(BUILD_DIR)/res/drawable-mdpi/icon.png: assets/icon_mdpi.png
-	@mkdir -p $(@D)
-	cp $< $@
-
-$(BUILD_DIR)/res/drawable-hdpi/icon.png: assets/icon_hdpi.png
-	@mkdir -p $(@D)
-	cp $< $@
-
-$(BUILD_DIR)/res/drawable-xhdpi/icon.png: assets/icon_xhdpi.png
-	@mkdir -p $(@D)
-	cp $< $@
-
-# Copy assets to build directory
-$(BUILD_DIR)/assets: $(ASSET_FILES)
-	@mkdir -p $@
-	cp -r assets/* $@
-
-# Aggregate asset copying
-.PHONY: copy-assets
-copy-assets: $(BUILD_DIR)/res/drawable-ldpi/icon.png \
-             $(BUILD_DIR)/res/drawable-mdpi/icon.png \
-             $(BUILD_DIR)/res/drawable-hdpi/icon.png \
-             $(BUILD_DIR)/res/drawable-xhdpi/icon.png \
-             $(BUILD_DIR)/assets
 
 # Build Raylib static library
 $(LIBRAYLIB):

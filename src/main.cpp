@@ -18,9 +18,9 @@
 #define RAYLIB_NUKLEAR_IMPLEMENTATION
 #include "nuklear/raylib-nuklear.h"
 
-#include "./utils.cpp"
-
 #include "nlohmann/json.hpp"
+
+#include "env.h"
 
 using json = nlohmann::json;
 
@@ -28,6 +28,9 @@ namespace supabase {
 struct HttpClient {
   HttpClient() { multi_handle = curl_multi_init(); }
   ~HttpClient() { curl_multi_cleanup(multi_handle); }
+
+  using read_callback = size_t(char *ptr, size_t size, size_t nitems,
+                               void *userdata);
 
   void poll() {
     curl_multi_poll(multi_handle, NULL, 0, 0, NULL);
@@ -41,8 +44,9 @@ struct HttpClient {
     }
   }
 
-  void add_handle(CURL *curl) {
+  void add_handle(CURL *curl, read_callback cb) {
     assert(curl);
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, cb);
     curl_multi_add_handle(multi_handle, curl);
   }
 
@@ -62,7 +66,14 @@ struct Auth {
   }
 
   void sign_in_anonymously() {
-    http->add_handle(curl);
+    auto cb = [](char *ptr, size_t size, size_t nitems, void *userdata) {
+      Auth *auth = reinterpret_cast<Auth *>(userdata);
+      auth->response.append(ptr, size * nitems);
+      std::cout << std::quoted(auth->response) << std::endl;
+      return size * nitems;
+    };
+    http->add_handle(curl, cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{}");
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 2);
@@ -72,6 +83,7 @@ private:
   std::string endpoint;
   std::string signup_endpoint;
 
+  std::string response;
   CURL *curl;
 
   HttpClient *http;
@@ -116,35 +128,31 @@ int main() {
   ChangeDirectory("assets");
 #endif
 
-  char *json_contents = LoadFileText(".env.json");
+  std::string api_key = SUPABASE_KEY;
+  std::string api_url = SUPABASE_URL;
 
-  if (!json_contents) {
-    TraceLog(LOG_FATAL, ".env.json not found!");
-  }
-
-  json env = json::parse(json_contents);
-  if (!env.contains("supabaseKey")) {
+  if (api_key.empty()) {
     TraceLog(LOG_FATAL, "%s", "supabaseKey is required");
   }
-  if (!env.contains("supabaseUrl")) {
+  if (api_url.empty()) {
     TraceLog(LOG_FATAL, "%s", "supabaseUrl is required");
   }
-  Client client(env["supabaseKey"], env["supabaseUrl"]);
+  Client client(api_key, api_url);
 
 #ifdef PLATFORM_DESKTOP
-  int SCREEN_WIDTH = 600;
-  int SCREEN_HEIGHT = 800;
-  InitWindow(SCREEN_HEIGHT, SCREEN_WIDTH, "Hello, World");
+  int SCREEN_WIDTH = 800;
+  int SCREEN_HEIGHT = 600;
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
 #else
   InitWindow(0, 0, "Hello, World");
   int SCREEN_WIDTH = GetScreenWidth();
   int SCREEN_HEIGHT = GetScreenHeight();
 #endif
-  struct nk_context *ctx = InitNuklear(10);
+  struct nk_context *ctx = InitNuklear(40);
 
   SetTargetFPS(60);
 
-  GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+  GuiSetStyle(DEFAULT, TEXT_SIZE, 40);
 
   char mail_buffer[256] = {0};
   bool mail_focus = false;
@@ -152,44 +160,35 @@ int main() {
   bool pass_focus = false;
   bool secret = true;
 
+  std::string label = "Waiting...";
+
   while (!WindowShouldClose()) {
-    client.poll();
+    //client.poll();
     UpdateNuklear(ctx);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    // init gui state
-    enum { EASY, HARD };
-    static int op = EASY;
-    static float value = 0.6f;
-    static int i = 20;
+    if (nk_begin(ctx, "Login as Anonymous", nk_rect(20, 20, SCREEN_WIDTH - 40, SCREEN_HEIGHT - 40),
+                 NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE | NK_WINDOW_SCALABLE | NK_WINDOW_NO_SCROLLBAR)) {
+      nk_layout_row_dynamic(ctx, 0, 1);
 
-    //nk_init_fixed(&ctx, calloc(1, MAX_MEMORY), MAX_MEMORY, &font);
-    if (nk_begin(ctx, "Show", nk_rect(50, 50, 220, 220),
-                 NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
-      // fixed widget pixel width
-      nk_layout_row_static(ctx, 30, 80, 1);
-      if (nk_button_label(ctx, "button")) {
-        // event handling
+      nk_label(ctx, "Login as Anonymous", NK_TEXT_CENTERED);
+
+      nk_layout_row_dynamic(ctx, 0, 2);
+      if (nk_button_label(ctx, "Load .env.json")) {
+        //label = "Login was clicked!";
+        label = LoadFileText("env.json");
+      }
+      if (nk_button_label(ctx, "Load hello_world.txt")) {
+        //label = "Back was clicked!";
+        label = LoadFileText("hello_world.txt");
       }
 
-      // fixed widget window ratio width
-      nk_layout_row_dynamic(ctx, 30, 2);
-      if (nk_option_label(ctx, "easy", op == EASY))
-        op = EASY;
-      if (nk_option_label(ctx, "hard", op == HARD))
-        op = HARD;
+      nk_layout_row_dynamic(ctx, 0, 1);
+      nk_label(ctx, label.c_str(), NK_TEXT_CENTERED);
+      nk_label(ctx, GetApplicationDirectory(), NK_TEXT_CENTERED);
 
-      // custom widget pixel width
-      nk_layout_row_begin(ctx, NK_STATIC, 30, 2);
-      {
-        nk_layout_row_push(ctx, 50);
-        nk_label(ctx, "Volume:", NK_TEXT_LEFT);
-        nk_layout_row_push(ctx, 110);
-        nk_slider_float(ctx, 0, &value, 1.0f, 0.1f);
-      }
-      nk_layout_row_end(ctx);
     }
     nk_end(ctx);
 

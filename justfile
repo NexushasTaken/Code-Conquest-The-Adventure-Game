@@ -24,6 +24,9 @@ build-android-make:
 install-android:
   make TARGET=Android install
 
+run-android:
+  make TARGET=Android run
+
 build-linux-make:
   make TARGET=Linux -j
 
