@@ -24,12 +24,22 @@ if(PLATFORM STREQUAL "Android")
   add_library(native_app_glue ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
   target_include_directories(native_app_glue PUBLIC ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/)
 
-  set(CURL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/include/)
+  set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/include/)
   set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcurl.a)
 
-  set(SSL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI}/include/)
-  list(APPEND SSL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/openssl.a)
-  list(APPEND SSL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcrypto.a)
+
+  find_package(OpenSSL REQUIRED)
+  set(OPENSSL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI})
+  set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include/)
+  include_directories(${OPENSSL_INCLUDE_DIR})
+  list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libssl.a)
+  list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libcrypto.a)
+  set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/)
+  set(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_ROOT_DIR}/lib/)
+  set(LIBPSL_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/libpsl_src-install/include)
+  set(LIBPSL_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/libpsl_src-install)
+
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
 
   set(ZLIB_LIBRARIES "-lz")
   set(LINK_LIBRARIES native_app_glue)
@@ -48,12 +58,15 @@ project(Main)
 set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 
 target_link_libraries(main PUBLIC ${CURL_LIBRARIES})
-target_include_directories(main PUBLIC ${CURL_INCLUDE_DIRS})
+target_include_directories(main PUBLIC ${CURL_INCLUDE_DIR})
 target_compile_options(main PUBLIC ${CUR_CFLAGS_OTHER})
 
 target_link_libraries(main PUBLIC ${ZLIB_LIBRARIES})
-target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIRS})
+target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIR})
 target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
+
+target_link_libraries(main PUBLIC ${OPENSSL_LIBRARIES})
+target_include_directories(main PUBLIC ${OPENSSL_INCLUDE_DIR})
 
 target_include_directories(main PUBLIC ./externals/lua/src/)
 
@@ -65,6 +78,9 @@ target_link_libraries(main PUBLIC sol2)
 
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
+
+add_subdirectory(./externals/cpr)
+target_link_libraries(main PUBLIC cpr::cpr)
 
 file(READ "${CMAKE_SOURCE_DIR}/.env" DOTENV)
 
