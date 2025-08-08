@@ -15,7 +15,7 @@ LUA_OBJ := $(LUA_SRC:%=$(BUILD_DIR)/%.o)
 
 OBJS := $(OBJ) $(LUA_OBJ)
 
-.PHONE: all
+.PHONY: all
 all: $(BUILD_DIR)/$(NAME)
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
