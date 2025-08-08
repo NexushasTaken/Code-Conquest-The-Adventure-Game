@@ -35,7 +35,6 @@ if(PLATFORM STREQUAL "Android")
   set(LINK_LIBRARIES native_app_glue)
 
   add_library(main SHARED ${SRCS})
-  set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 else()
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(CURL REQUIRED libcurl)
@@ -45,6 +44,8 @@ else()
 endif()
 
 project(Main)
+
+set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 
 target_link_libraries(main PUBLIC ${CURL_LIBRARIES})
 target_include_directories(main PUBLIC ${CURL_INCLUDE_DIRS})
