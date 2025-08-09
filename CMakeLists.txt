@@ -26,12 +26,11 @@ if(PLATFORM STREQUAL "Android")
 
   set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/include/)
   set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcurl.a)
-
+  set(CURL_LIBRARY ${CURL_LIBRARIES})
 
   find_package(OpenSSL REQUIRED)
   set(OPENSSL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI})
   set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include/)
-  include_directories(${OPENSSL_INCLUDE_DIR})
   list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libssl.a)
   list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libcrypto.a)
   set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/)
@@ -52,7 +51,6 @@ else()
 
   add_executable(main ${SRCS})
 endif()
-
 project(Main)
 
 set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
@@ -79,6 +77,8 @@ target_link_libraries(main PUBLIC sol2)
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
 
+set(CURL_ZLIB OFF)
+set(CPR_USE_SYSTEM_CURL ON)
 add_subdirectory(./externals/cpr)
 target_link_libraries(main PUBLIC cpr::cpr)
 

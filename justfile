@@ -21,7 +21,7 @@ build-android-cmake:
 build-android-make:
   make TARGET=Android
 
-install-android:
+install-android-make:
   make TARGET=Android install
 
 run-android-make:

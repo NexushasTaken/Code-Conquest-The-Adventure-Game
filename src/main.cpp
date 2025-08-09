@@ -1,16 +1,13 @@
 #include "cpr/api.h"
-#include "cpr/session.h"
+#include "cpr/ssl_options.h"
 #include "raygui.h"
 #include "raylib.h"
 #include <cpr/cpr.h>
-#include <cstdlib>
 #include <cstring>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
-#include <iomanip>
 #include <iostream>
-#include <memory>
 #include <string>
 
 #define SOL_BUILD_CXX_MODE 1
@@ -29,8 +26,8 @@
 #include "env.h"
 
 #ifdef PLATFORM_ANDROID
-const int SCREEN_WIDTH = 0;
-const int SCREEN_HEIGHT = 0;
+int SCREEN_WIDTH = 0;
+int SCREEN_HEIGHT = 0;
 #else
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
@@ -96,7 +93,9 @@ struct Auth {
   }
 
   AuthResponse sign_in_anonymously() {
-    cpr::Response response = cpr::Post(headers, signup_endpoint, empty_data);
+    cpr::Response response = cpr::Post(headers, signup_endpoint, empty_data,
+                                       cpr::Ssl(cpr::ssl::CaInfo{"cacert.pem"}));
+
     user = User{response};
     session = json::parse(response.text);
 
@@ -184,7 +183,12 @@ struct GuiContext {
   bool secret = true;
 
   std::string label;
+
   Page page = Authenticate;
+
+  bool do_sign_in = false;
+  bool do_sign_up = false;
+  bool do_logout = false;
 };
 
 void password_input(nk_context *ctx, char *pwd_buf, int *len, int max) {
@@ -299,15 +303,17 @@ void draw_authentication(GuiContext &ctx, Client &client) {
 
     if (nk_button_label(ctx.ctx, "Sign in")) {
       ctx.page = SignIn;
+      ctx.label = "Sign in was clicked!";
     }
 
     if (nk_button_label(ctx.ctx, "Sign up")) {
       ctx.page = SignUp;
+      ctx.label = "Sign up was clicked!";
     }
 
     if (nk_button_label(ctx.ctx, "Sign in as Anonymous")) {
       client.auth.sign_in_anonymously();
-      ctx.label = "Anonymous was clicked!";
+      ctx.label = "Signed in successfully";
     }
 
     nk_label(ctx.ctx, ctx.label.c_str(), NK_TEXT_CENTERED);
@@ -332,10 +338,68 @@ void draw_ui(GuiContext &ctx, Client &client) {
   }
 }
 
+struct LogWindow {
+  std::vector<std::string> lines;
+
+  void Add(const std::string &msg) {
+    lines.push_back(msg);
+  }
+
+  void Draw(struct nk_context *ctx) {
+    nk_layout_row_dynamic(ctx, 0, 1);
+    for (auto &line : lines) {
+      nk_label_wrap(ctx, line.c_str());
+    }
+  }
+};
+static LogWindow log_win;
+static std::string default_dir;
+
+void DrawFileBrowser(struct nk_context *ctx) {
+  nk_layout_row_dynamic(ctx, 25, 1);
+  nk_label(ctx, GetWorkingDirectory(), NK_TEXT_CENTERED);
+  nk_layout_row_dynamic(ctx, 25, 2);
+  if (nk_button_label(ctx, "data")) {
+    #ifdef PLATFORM_ANDROID
+    std::string path = PACKAGE_NAME;
+    path = "/data/data/" + path;
+    ChangeDirectory(path.c_str());
+    #else
+    ChangeDirectory(GetApplicationDirectory());
+    #endif
+  }
+  if (nk_button_label(ctx, "default")) {
+    ChangeDirectory(default_dir.c_str());
+  }
+  nk_layout_row_dynamic(ctx, 25, 1);
+
+  // "Up" directory button ("..")
+  if (nk_button_label(ctx, "..")) {
+    ChangeDirectory("..");
+  }
+
+  // Get files & dirs in currentDir
+  FilePathList files = LoadDirectoryFiles(GetWorkingDirectory());
+
+  for (int i = 0; i < files.count; i++) {
+    const char *path = files.paths[i];
+    if (DirectoryExists(path)) {
+      // It's a directory -> button
+      const char *dirname = GetFileName(path);
+      if (nk_button_label(ctx, dirname)) {
+        ChangeDirectory(dirname);
+      }
+    } else {
+      // It's a file -> label
+      nk_label(ctx, GetFileName(path), NK_TEXT_LEFT);
+    }
+  }
+
+  UnloadDirectoryFiles(files);
+}
+
 int main() {
-#ifdef PLATFORM_DESKTOP
-  ChangeDirectory("assets");
-#endif
+  default_dir = GetWorkingDirectory();
   std::string api_key = SUPABASE_KEY;
   std::string api_url = SUPABASE_URL;
 
@@ -349,9 +413,23 @@ int main() {
   Client client(api_url, api_key);
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
+#ifdef PLATFORM_DESKTOP
+  ChangeDirectory("assets");
+#elif PLATFORM_ANDROID
+  {
+    SCREEN_WIDTH = GetScreenWidth();
+    SCREEN_HEIGHT = GetScreenHeight();
+    std::string data_dir = std::string("/data/data/") + PACKAGE_NAME + "/files";
+    ChangeDirectory(data_dir.c_str());
 
+    char *data = LoadFileText("cacert.pem");
+    SaveFileText("cacert.pem", data);
+    log_win.Add(std::string(data));
+  }
+#endif
   GuiContext ctx;
-  Font font = LoadFont("assets/fonts/NotoSans-Regular.ttf");
+
+  Font font = LoadFont("fonts/NotoSans-Regular.ttf");
   ctx.ctx = InitNuklearEx(font, 20);
 
   SetTargetFPS(60);
@@ -365,7 +443,18 @@ int main() {
     ClearBackground(RAYWHITE);
 
     draw_ui(ctx, client);
-    DrawRectangleRec({0, 0, 200, 200}, BLACK);
+    // if (nk_begin(ctx.ctx, "File Browser", nk_rect(10, 10, 400, 580),
+    //              NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_MOVABLE)) {
+    //   DrawFileBrowser(ctx.ctx);
+    // }
+    // nk_end(ctx.ctx);
+
+    // if (nk_begin(ctx.ctx, "Log", nk_rect(400, 10, 380, 580),
+    //              NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_MOVABLE |
+    //              NK_WINDOW_SCROLL_AUTO_HIDE | NK_WINDOW_SCALABLE)) {
+    //   log_win.Draw(ctx.ctx);
+    // }
+    // nk_end(ctx.ctx);
 
     DrawNuklear(ctx.ctx);
     EndDrawing();
