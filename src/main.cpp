@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include <cpr/cpr.h>
 #include <cstdlib>
+#include <cstring>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
@@ -38,6 +39,54 @@ const int SCREEN_HEIGHT = 600;
 using json = nlohmann::json;
 
 namespace supabase {
+struct User {
+  User() = default;
+  User(cpr::Response response) {
+    json body = json::parse(response.text);
+    std::cout << body.dump(2) << std::endl;
+
+    json user = body["user"];
+    id = user.value("id", "");
+    aud = user.value("aud", "");
+    role = user.value("role", "");
+    email = user.value("email", "");
+    email_confirmed_at = user.value("email_confirmed_at", "");
+    phone = user.value("phone", "");
+    phone_confirmed_at = user.value("phone_confirmed_at", "");
+    confirmed_at = user.value("confirmed_at", "");
+    last_sign_in_at = user.value("last_sign_in_at", "");
+    app_metadata = user.value("app_metadata", json::object_t{});
+    user_metadata = user.value("user_metadata", json::object_t{});
+    identities = user.value("identities", json::array_t{});
+    created_at = user.value("created_at", "");
+    updated_at = user.value("updated_at", "");
+    is_anonymous = user.value<bool>("is_anonymous", false);
+  }
+
+  // https://supabase.com/docs/guides/auth/users#the-user-object
+  std::string id; // 	string	The unique id of the identity of the user.
+  std::string aud; // 	string	The audience claim.
+  std::string role; // 	string	The role claim used by Postgres to perform Row Level Security (RLS) checks.
+  std::string email; // 	string	The user's email address.
+  std::string email_confirmed_at; // 	string	The timestamp that the user's email was confirmed. If null, it means that the user's email is not confirmed.
+  std::string phone; // 	string	The user's phone number.
+  std::string phone_confirmed_at; // 	string	The timestamp that the user's phone was confirmed. If null, it means that the user's phone is not confirmed.
+  std::string confirmed_at; // 	string	The timestamp that either the user's email or phone was confirmed. If null, it means that the user does not have a confirmed email address and phone number.
+  std::string last_sign_in_at; // 	string	The timestamp that the user last signed in.
+  json app_metadata; // 	object	The provider attribute indicates the first provider that the user used to sign up with. The providers attribute indicates the list of providers that the user can use to login with.
+  json user_metadata; // 	object	Defaults to the first provider's identity data but can contain additional custom user metadata if specified. Refer to User Identity for more information about the identity object.
+  json identities; // 	UserIdentity[]	Contains an object array of identities linked to the user.
+  std::string created_at; // 	string	The timestamp that the user was created.
+  std::string updated_at; // 	string	The timestamp that the user was last updated.
+  bool is_anonymous; // 	boolean	Is true if the user is an anonymous user.
+};
+
+struct AuthResponse {
+  AuthResponse() = default;
+  AuthResponse(User user) : user(user) {}
+  User user;
+};
+
 struct Auth {
   Auth() = default;
   Auth(cpr::Url auth_url, cpr::Header headers) : headers(headers) {
@@ -46,14 +95,18 @@ struct Auth {
     logout_endpoint = auth_url + "/logout";
   }
 
-  void sign_in_anonymously() {
+  AuthResponse sign_in_anonymously() {
     cpr::Response response = cpr::Post(headers, signup_endpoint, empty_data);
-    std::cout << "raw_header: " << response.raw_header << std::endl;
-    std::cout << "text: " << response.text << std::endl;
-    std::cout << "url: " << response.url << std::endl;
-    std::cout << "reason: " << response.reason << std::endl;
-
+    user = User{response};
     session = json::parse(response.text);
+
+    std::cout << user.id << std::endl;
+    std::cout << user.email << std::endl;
+    std::cout << user.role << std::endl;
+    std::cout << user.is_anonymous << std::endl;
+    std::cout << user.identities << std::endl;
+
+    return AuthResponse(user);
   }
 
   void sign_out() {
@@ -65,11 +118,15 @@ struct Auth {
     std::cout << "reason: " << response.reason << std::endl;
 
     session = json::parse(response.text);
+
+    user = User{};
+    session = json{};
   }
 
   bool check_auth() { return false; }
 
 private:
+  User user;
   json session;
 
   cpr::Url endpoint;
@@ -108,33 +165,144 @@ private:
 
 using supabase::Client;
 
+enum Page {
+  Authenticate,
+  Menu,
+  SignIn,
+  SignUp,
+};
+
 struct GuiContext {
   nk_context *ctx;
 
   char mail_buffer[256] = {0};
-  bool mail_focus = false;
+  int mail_max = 256;
+  int mail_length = 0;
   char pass_buffer[256] = {0};
-  bool pass_focus = false;
+  int pass_max = 256;
+  int pass_length = 0;
   bool secret = true;
 
   std::string label;
+  Page page = Authenticate;
 };
 
-void draw_ui(GuiContext &ctx, Client &client) {
+void password_input(nk_context *ctx, char *pwd_buf, int *len, int max) {
+  char *buf = new char[max];
+  memset(buf, '*', *len);
+  buf[*len] = 0;
+
+  int old_len = *len;
+  nk_edit_string(ctx, NK_EDIT_SIMPLE, buf, len, max, nk_filter_default);
+
+  if (old_len < *len) {
+    memcpy(&pwd_buf[old_len], &buf[old_len], (nk_size)(*len - old_len));
+  } else if (old_len > *len) {
+    pwd_buf[*len] = 0;
+  }
+  delete[] buf;
+}
+
+void draw_sign_in_ui(GuiContext &ctx, Client &client) {
+  if (nk_begin(ctx.ctx, "Sign In",
+              nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                      SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                      SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+              NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_NO_SCROLLBAR)) {
+    nk_layout_row_dynamic(ctx.ctx, 0, 1);
+
+    nk_label(ctx.ctx, "Enter your credentials to Sign In", NK_TEXT_CENTERED);
+    nk_layout_row_dynamic(ctx.ctx, 0, 2);
+
+    ctx.ctx->style.edit.cursor_size = 1.0;
+    nk_label(ctx.ctx, "Email", NK_TEXT_CENTERED);
+    nk_edit_string(ctx.ctx, NK_TEXT_EDIT_SINGLE_LINE|NK_EDIT_SIMPLE, ctx.mail_buffer, &ctx.mail_length, ctx.mail_max, nk_filter_default);
+
+    nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
+    password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
+
+    nk_label(ctx.ctx, "...", NK_TEXT_CENTERED);
+    if (nk_button_label(ctx.ctx, "Sign In")) {
+      ctx.label = "Sign up was clicked!";
+    }
+
+    nk_layout_row_dynamic(ctx.ctx, 0, 3);
+    nk_spacing(ctx.ctx, 1);
+    if (nk_button_label(ctx.ctx, "Back")) {
+      ctx.page = Authenticate;
+    }
+  }
+  nk_end(ctx.ctx);
+}
+
+void draw_sign_up_ui(GuiContext &ctx, Client &client) {
+  if (nk_begin(ctx.ctx, "Sign Up",
+              nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                      SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                      SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+              NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_NO_SCROLLBAR)) {
+    nk_layout_row_dynamic(ctx.ctx, 0, 1);
+
+    nk_label(ctx.ctx, "Enter your credentials to Sign Up", NK_TEXT_CENTERED);
+    nk_layout_row_dynamic(ctx.ctx, 0, 2);
+
+    ctx.ctx->style.edit.cursor_size = 1.0;
+    nk_label(ctx.ctx, "Email", NK_TEXT_CENTERED);
+    nk_edit_string(ctx.ctx, NK_TEXT_EDIT_SINGLE_LINE|NK_EDIT_SIMPLE, ctx.mail_buffer, &ctx.mail_length, ctx.mail_max, nk_filter_default);
+
+    nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
+    password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
+
+    nk_label(ctx.ctx, "...", NK_TEXT_CENTERED);
+    if (nk_button_label(ctx.ctx, "Sign up")) {
+      ctx.label = "Sign up was clicked!";
+    }
+
+    nk_layout_row_dynamic(ctx.ctx, 0, 3);
+    nk_spacing(ctx.ctx, 1);
+    if (nk_button_label(ctx.ctx, "Back")) {
+      ctx.page = Authenticate;
+    }
+  }
+  nk_end(ctx.ctx);
+}
+
+void draw_main_menu_ui(GuiContext &ctx, Client &client) {
+  if (nk_begin(ctx.ctx, "Main Menu",
+              nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                      SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                      SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+              NK_WINDOW_BORDER | NK_WINDOW_SCALABLE | NK_WINDOW_NO_SCROLLBAR)) {
+    nk_layout_row_dynamic(ctx.ctx, 0, 1);
+
+    nk_label(ctx.ctx, "Main Menu", NK_TEXT_CENTERED);
+
+    nk_label(ctx.ctx, "Authentication status", NK_TEXT_CENTERED);
+    if (nk_button_label(ctx.ctx, "Sign Out")) {
+      ctx.page = Authenticate;
+    }
+  }
+  nk_end(ctx.ctx);
+}
+
+void draw_authentication(GuiContext &ctx, Client &client) {
   if (nk_begin(ctx.ctx, "Choose how you want to Sign in",
-               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
-               NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
-                   NK_WINDOW_NO_SCROLLBAR)) {
+              nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                      SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                      SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+              NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
+                  NK_WINDOW_NO_SCROLLBAR)) {
+    nk_layout_row_dynamic(ctx.ctx, 0, 3);
+    nk_spacing(ctx.ctx, 1);
+    nk_label(ctx.ctx, "Welcome", NK_TEXT_CENTERED);
     nk_layout_row_dynamic(ctx.ctx, 0, 1);
 
     if (nk_button_label(ctx.ctx, "Sign in")) {
-      ctx.label = "Sign in was clicked!";
+      ctx.page = SignIn;
     }
 
     if (nk_button_label(ctx.ctx, "Sign up")) {
-      ctx.label = "Sign up was clicked!";
+      ctx.page = SignUp;
     }
 
     if (nk_button_label(ctx.ctx, "Sign in as Anonymous")) {
@@ -147,12 +315,27 @@ void draw_ui(GuiContext &ctx, Client &client) {
   nk_end(ctx.ctx);
 }
 
+void draw_ui(GuiContext &ctx, Client &client) {
+  switch (ctx.page) {
+    case Authenticate: {
+      draw_authentication(ctx, client);
+    } break;
+    case SignIn: {
+      draw_sign_in_ui(ctx, client);
+    } break;
+    case SignUp: {
+      draw_sign_up_ui(ctx, client);
+    } break;
+    case Menu: {
+      draw_main_menu_ui(ctx, client);
+    } break;
+  }
+}
+
 int main() {
 #ifdef PLATFORM_DESKTOP
   ChangeDirectory("assets");
 #endif
-  TraceLog(LOG_INFO, "%s", curl_version());
-
   std::string api_key = SUPABASE_KEY;
   std::string api_url = SUPABASE_URL;
 
@@ -168,7 +351,8 @@ int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
 
   GuiContext ctx;
-  ctx.ctx = InitNuklear(18);
+  Font font = LoadFont("assets/fonts/NotoSans-Regular.ttf");
+  ctx.ctx = InitNuklearEx(font, 20);
 
   SetTargetFPS(60);
 
@@ -181,6 +365,7 @@ int main() {
     ClearBackground(RAYWHITE);
 
     draw_ui(ctx, client);
+    DrawRectangleRec({0, 0, 200, 200}, BLACK);
 
     DrawNuklear(ctx.ctx);
     EndDrawing();
