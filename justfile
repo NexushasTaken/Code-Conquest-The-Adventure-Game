@@ -1,5 +1,5 @@
 configure-linux:
-  cmake -B build-linux -DPLATFORM=Desktop --fresh \
+  cmake -B build-linux-cmake -DPLATFORM=Desktop --fresh \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
     -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
@@ -30,8 +30,8 @@ run-android-make:
 build-linux-make:
   make TARGET=Linux -j
 
-run-linux: build-linux-make
-  ./build-linux/main
+run-linux-cmake: build-linux-cmake
+  ./build-linux-cmake/main
 
 run-linux-make: build-linux-make
   ./build-linux/game

@@ -44,6 +44,7 @@ if(PLATFORM STREQUAL "Android")
 else()
   add_executable(main ${SRCS})
 
+  set(CPR_USE_SYSTEM_CURL ON)
   pkg_check_modules(CURL REQUIRED libcurl)
   pkg_check_modules(ZLIB REQUIRED zlib)
 endif()
