@@ -1,70 +1,66 @@
 cmake_minimum_required(VERSION 3.12)
 
+project(Main)
+find_package(PkgConfig REQUIRED)
+
 set(SRCS
   ./src/main.cpp
 )
 
-list(APPEND SRCS ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c)
-add_compile_options(-DLUA_COMPAT_5_3)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(PLATFORM STREQUAL "Android")
-  set(SDK ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME})
-  set(NDK ${CMAKE_CURRENT_SOURCE_DIR}/android/ndk/${CMAKE_HOST_SYSTEM_NAME}/android-ndk-r25b)
-  set(BUILD_TOOLS_VERSION 36.0.0)
-  set(BUILD_TOOLS ${CMAKE_CURRENT_SOURCE_DIR}/android/sdk/${CMAKE_HOST_SYSTEM_NAME}/build-tools/${BUILD_TOOLS_VERSION})
+  add_library(main SHARED ${SRCS})
 
-  set(CMAKE_SYSTEM_NAME "Android")
-  set(CMAKE_SYSTEM_VERSION 31) # API level
-  set(CMAKE_ANDROID_NDK ${NDK})
-  set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
-  set(CMAKE_ANDROID_ARCH_ABI armeabi-v7a)
+  set(OPENSSL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI} CACHE PATH "OpenSSL root")
+  set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include CACHE PATH "OpenSSL include")
+  set(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libcrypto.a CACHE FILEPATH "OpenSSL crypto lib")
+  set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libssl.a CACHE FILEPATH "OpenSSL ssl lib")
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY} CACHE STRING "OpenSSL libraries")
+  set(OPENSSL_USE_STATIC_LIBS ON CACHE BOOL "Use static OpenSSL libs")
 
-  add_library(native_app_glue ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
-  target_include_directories(native_app_glue PUBLIC ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/)
+  find_package(OpenSSL REQUIRED)
 
   set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/include/)
   set(CURL_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcurl.a)
   set(CURL_LIBRARY ${CURL_LIBRARIES})
-
-  find_package(OpenSSL REQUIRED)
-  set(OPENSSL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/externals/openssl/${CMAKE_ANDROID_ARCH_ABI})
-  set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include/)
-  list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libssl.a)
-  list(APPEND OPENSSL_LIBRARIES ${OPENSSL_ROOT_DIR}/lib/libcrypto.a)
-  set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/)
-  set(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_ROOT_DIR}/lib/)
-  set(LIBPSL_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/libpsl_src-install/include)
-  set(LIBPSL_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/libpsl_src-install)
-
-  set(CPR_FORCE_OPENSSL_BACKEND ON)
-
+  set(CPR_USE_SYSTEM_CURL ON)
   set(ZLIB_LIBRARIES "-lz")
-  set(LINK_LIBRARIES native_app_glue)
 
-  add_library(main SHARED ${SRCS})
+  add_library(native_app_glue STATIC
+    ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
+  )
+  target_include_directories(main PUBLIC
+    ${ANDROID_NDK}/sources/android/native_app_glue
+  )
+  target_link_libraries(main PUBLIC
+    "-Wl,--whole-archive" native_app_glue "-Wl,--no-whole-archive"
+    android log
+  )
+
+  target_include_directories(main PUBLIC ${OPENSSL_INCLUDE_DIR})
+  target_link_directories(main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/externals/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/)
+  target_link_libraries(main PUBLIC ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
 else()
-  find_package(PkgConfig REQUIRED)
+  add_executable(main ${SRCS})
+
   pkg_check_modules(CURL REQUIRED libcurl)
   pkg_check_modules(ZLIB REQUIRED zlib)
-
-  add_executable(main ${SRCS})
 endif()
-project(Main)
 
 set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 
+add_library(lua STATIC ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c)
+target_compile_definitions(lua PUBLIC LUA_COMPAT_5_3)
+target_link_libraries(main PUBLIC lua)
+
 target_link_libraries(main PUBLIC ${CURL_LIBRARIES})
 target_include_directories(main PUBLIC ${CURL_INCLUDE_DIR})
-target_compile_options(main PUBLIC ${CUR_CFLAGS_OTHER})
+target_compile_options(main PUBLIC ${CURL_CFLAGS_OTHER})
 
 target_link_libraries(main PUBLIC ${ZLIB_LIBRARIES})
 target_include_directories(main PUBLIC ${ZLIB_INCLUDE_DIR})
 target_compile_options(main PUBLIC ${ZLIB_CFLAGS_OTHER})
-
-target_link_libraries(main PUBLIC ${OPENSSL_LIBRARIES})
-target_include_directories(main PUBLIC ${OPENSSL_INCLUDE_DIR})
 
 target_include_directories(main PUBLIC ./externals/lua/src/)
 
@@ -77,8 +73,6 @@ target_link_libraries(main PUBLIC sol2)
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
 
-set(CURL_ZLIB OFF)
-set(CPR_USE_SYSTEM_CURL ON)
 add_subdirectory(./externals/cpr)
 target_link_libraries(main PUBLIC cpr::cpr)
 
@@ -102,4 +96,5 @@ set(SUPABASE_KEY_DEF "\"${SUPABASE_KEY_CLEAN}\"")
 target_compile_definitions(main PRIVATE
   SUPABASE_URL=${SUPABASE_URL_DEF}
   SUPABASE_KEY=${SUPABASE_KEY_DEF}
+  PACKAGE_NAME="${PACKAGE_NAME}"
 )

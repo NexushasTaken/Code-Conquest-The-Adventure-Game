@@ -1,0 +1,75 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.1.1"
+  }
+}
+
+allprojects {
+  repositories {
+    mavenCentral()
+    google()
+  }
+}
+
+apply plugin: "com.android.application"
+
+android {
+  namespace = "com.raylib.game"
+  compileSdkVersion = 31
+  buildToolsVersion = "36.0.0"
+
+  defaultConfig {
+    minSdk = 16
+    targetSdk = 31
+    versionCode = 1
+    versionName = "1.0"
+    externalNativeBuild {
+      cmake {
+        arguments "-DANDROID_PLATFORM=android-31",
+          "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_static",
+          "-DANDROID_CPP_FEATURES=rtti exceptions",
+          "-DPLATFORM=Android",
+          "-DPACKAGE_NAME=${namespace}"
+      }
+    }
+    ndk {
+      // Specifies the ABI configurations of your native
+      // libraries Gradle should build and package with your app.
+      // "x86", "x86_64", "armeabi-v7a", "arm64-v8a"
+      abiFilters "x86", "x86_64", "armeabi-v7a", "arm64-v8a"
+    }
+  }
+
+  sourceSets {
+    main {
+      manifest.srcFile "AndroidManifest.xml"
+      java.srcDirs += "src"
+      main.java.srcDirs += "src"
+      res.srcDirs += "assets/res"
+      jniLibs.srcDirs = ["src/main/jniLibs"]
+      assets.srcDirs += "assets"
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "./CMakeLists.txt"
+      version "4.0.3"
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+    debug {
+      debuggable true
+      jniDebuggable true
+      minifyEnabled false
+    }
+  }
+}
