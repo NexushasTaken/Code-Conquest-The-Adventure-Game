@@ -3,7 +3,7 @@ configure-linux:
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
     -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
-  ln -sf build-linux/compile_commands.json compile_commands.json
+  ln -sf build-linux-cmake/compile_commands.json compile_commands.json
 
 configure-android:
   cmake -B build-android-cmake -DPLATFORM=Android --fresh \
