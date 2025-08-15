@@ -168,11 +168,15 @@ void draw_main_menu_ui(GuiContext &ctx, Client &client) {
     nk_label(ctx.ctx, "Main Menu", NK_TEXT_CENTERED);
 
     auto session = client.auth.get_session();
-    if (session->user.is_anonymous) {
-      nk_label(ctx.ctx, "Signed In as Anonymous", NK_TEXT_CENTERED);
+    if (session.has_value()) {
+      if (session->user.is_anonymous) {
+        nk_label(ctx.ctx, "Signed In as Anonymous", NK_TEXT_CENTERED);
+      } else {
+        nk_label(ctx.ctx, ("Signed In as " + session->user.email).c_str(),
+                 NK_TEXT_CENTERED);
+      }
     } else {
-      nk_label(ctx.ctx, ("Signed In as " + session->user.email).c_str(),
-               NK_TEXT_CENTERED);
+      nk_label(ctx.ctx, "No session?", NK_TEXT_CENTERED);
     }
     if (nk_button_label(ctx.ctx, "Sign Out")) {
       ctx.page = Authenticate;
@@ -350,7 +354,8 @@ bool load_session(GuiContext &ctx, Client &client) {
 
   char *raw_session = LoadFileText(".data/session.json");
   json json_session = json::parse(raw_session);
-  auto result = client.auth.set_session(json_session);
+  auto result = client.auth.set_session(json_session["access_token"],
+                                        json_session["refresh_token"]);
   if (result.has_value()) {
     ctx.page = Menu;
   }

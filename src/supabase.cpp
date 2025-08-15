@@ -129,6 +129,8 @@ struct AuthResponse {
 using AuthResult = cpp::result<Session, ErrorCode>;
 using UserResult = cpp::result<User, ErrorCode>;
 using AuthError = optional<ErrorCode>;
+
+// TODO: make callbacks emitter for when auth state changes.
 struct Auth {
   Auth() = default;
   Auth(CprContext cpr_ctx, cpr::Url auth_url, cpr::Header headers)
@@ -228,9 +230,10 @@ struct Auth {
       }
     }
 
-    cpr::Response response = cpr::Post(
-        headers_with({{"authorization", "Bearer " + session.access_token}}),
-        user_endpoint, empty_data, cpr_ctx.ssl);
+    cpr::Response response =
+        cpr::Get(headers_with({{"authorization", "Bearer " + jwt.value()}}),
+                 user_endpoint, empty_data, cpr_ctx.ssl);
+    TraceLog(LOG_INFO, "%s", response.text.c_str());
     json raw_response = json::parse(response.text);
     return parse_user_response(raw_response);
   }
