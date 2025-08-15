@@ -79,6 +79,10 @@ target_link_libraries(main PUBLIC sol2)
 add_subdirectory(./externals/json)
 target_link_libraries(main PUBLIC nlohmann_json::nlohmann_json)
 
+set(JWT_BUILD_EXAMPLES OFF)
+add_subdirectory(./externals/jwt-cpp/)
+target_link_libraries(main PUBLIC jwt-cpp)
+
 add_subdirectory(./externals/cpr)
 target_link_libraries(main PUBLIC cpr::cpr)
 

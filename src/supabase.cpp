@@ -3,6 +3,7 @@
 #include "cpr/payload.h"
 #include "cpr/ssl_options.h"
 #include "global.hpp"
+#include "jwt-cpp/jwt.h"
 #include "nlohmann/json.hpp"
 #include "raylib.h"
 #include "result.hpp"
@@ -11,7 +12,6 @@
 #include <functional>
 #include <iostream>
 #include <optional>
-#include <regex.h>
 #include <string>
 
 namespace supabase {
@@ -111,8 +111,8 @@ struct Session {
 
   std::string access_token;
   std::string refresh_token;
-  int expires_in;
-  int expires_at;
+  long expires_in;
+  long expires_at;
   std::string token_type;
 
 private:
@@ -127,6 +127,7 @@ struct AuthResponse {
 };
 
 using AuthResult = cpp::result<Session, ErrorCode>;
+using UserResult = cpp::result<User, ErrorCode>;
 using AuthError = optional<ErrorCode>;
 struct Auth {
   Auth() = default;
@@ -137,6 +138,7 @@ struct Auth {
     signin_endpoint = auth_url + "/token?grant_type=password";
     logout_endpoint = auth_url + "/logout";
     refresh_endpoint = auth_url + "/token?grant_type=refresh_token";
+    user_endpoint = auth_url + "/user";
   }
 
   AuthResult sign_in_anonymously() {
@@ -148,7 +150,9 @@ struct Auth {
 
     json raw_response = json::parse(response.text);
 
-    return validate_auth_response(raw_response);
+    auto result = parse_auth_response(raw_response);
+    session = result.value_or(session);
+    return result;
   }
 
   AuthResult sign_up_email(std::string email, std::string password) {
@@ -164,7 +168,9 @@ struct Auth {
 
     json raw_response = json::parse(response.text);
 
-    return validate_auth_response(raw_response);
+    auto result = parse_auth_response(raw_response);
+    session = result.value_or(session);
+    return result;
   }
 
   AuthResult sign_in_email(std::string email, std::string password) {
@@ -180,11 +186,13 @@ struct Auth {
 
     json raw_response = json::parse(response.text);
 
-    return validate_auth_response(raw_response);
+    auto result = parse_auth_response(raw_response);
+    session = result.value_or(session);
+    return result;
   }
 
   AuthError sign_out() {
-    auto result = refresh_access_token();
+    auto result = call_refresh_token();
     if (result.has_error()) {
       return nullopt;
     }
@@ -203,7 +211,7 @@ struct Auth {
       return nullopt;
     }
 
-    auto result = refresh_access_token();
+    auto result = call_refresh_token();
     if (result.has_value()) {
       return result.value();
     } else {
@@ -212,53 +220,102 @@ struct Auth {
   }
 
   bool check_auth() { return get_session().has_value(); }
-  User get_user() { return session.user; }
+  UserResult get_user(optional<std::string> jwt = nullopt) {
+    if (!jwt.has_value()) {
+      auto session = get_session();
+      if (session.has_value()) {
+        jwt = session.value().access_token;
+      }
+    }
+
+    cpr::Response response = cpr::Post(
+        headers_with({{"authorization", "Bearer " + session.access_token}}),
+        user_endpoint, empty_data, cpr_ctx.ssl);
+    json raw_response = json::parse(response.text);
+    return parse_user_response(raw_response);
+  }
 
   AuthResult set_session(json raw_session) {
     session = Session{raw_session};
-    auto result = refresh_access_token();
+    auto result = call_refresh_token();
     return result;
   }
 
   AuthResult set_session(std::string access_token, std::string refresh_token) {
+    auto decoded_jwt = jwt::decode(access_token);
+    json payload = json::parse(decoded_jwt.get_payload());
+    long expires_at = payload.value("exp", 0);
+    bool has_expired = expires_at <= time_now();
+
+    if (has_expired) {
+      auto result = refresh_access_token(refresh_token);
+      if (result.has_value()) {
+        session = result.value();
+      }
+      return result;
+    } else {
+      auto result = get_user(access_token);
+      if (result.has_value()) {
+        session.access_token = access_token;
+        session.refresh_token = refresh_token;
+        session.token_type = "bearer";
+        session.user = result.value();
+        session.expires_in = expires_at - time_now();
+        session.expires_at = expires_at;
+      }
+    }
     return session;
   }
 
 private:
-  AuthResult refresh_access_token() {
-    using namespace std::chrono;
-    auto now = system_clock::now();
-    auto epoch = now.time_since_epoch();
-
-    bool has_expired =
-        session.expires_at <= duration_cast<seconds>(epoch).count();
+  AuthResult call_refresh_token(optional<std::string> refresh_token = nullopt) {
+    bool has_expired = session.expires_at <= time_now();
     if (!has_expired) {
       return session;
     }
 
-    cpr::Response response = cpr::Post(
-        headers, refresh_endpoint,
-        cpr::Body({{"refresh_token", session.refresh_token}}), cpr_ctx.ssl);
-    json raw_response = json::parse(response.text);
-
-    return validate_auth_response(raw_response);
+    auto result =
+        refresh_access_token(refresh_token.value_or(session.refresh_token));
+    session = result.value_or(session);
+    return result;
   }
 
-  AuthResult validate_auth_response(json response) {
+  AuthResult refresh_access_token(std::string refresh_token) {
+    json raw_body = {{"refresh_token", refresh_token}};
+    cpr::Response response = cpr::Post(headers, refresh_endpoint,
+                                       cpr::Body(raw_body.dump()), cpr_ctx.ssl);
+    json raw_response = json::parse(response.text);
+    return parse_auth_response(raw_response);
+  }
+
+  AuthResult parse_auth_response(json response) {
     switch (response.value("code", 0)) {
     case 400:
     case 422:
       return cpp::fail(ErrorCode{response});
     default:
-      session = Session{response};
-      return session;
+      return Session{response};
     }
+  }
+
+  UserResult parse_user_response(json response) {
+    switch (response.value("code", 0)) {
+    default:
+      return User{response};
+    }
+  }
+
+  long time_now() {
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    duration epoch = now.time_since_epoch();
+    return duration_cast<seconds>(epoch).count();
   }
 
   cpr::Header headers_with(cpr::Header with) {
     cpr::Header new_headers;
-    new_headers.insert(with.begin(), with.end());
     new_headers.insert(headers.begin(), headers.end());
+    new_headers.insert(with.begin(), with.end());
     return new_headers;
   }
 
@@ -269,6 +326,7 @@ private:
   cpr::Url signin_endpoint;
   cpr::Url logout_endpoint;
   cpr::Url refresh_endpoint;
+  cpr::Url user_endpoint;
 
   cpr::Response response;
 
