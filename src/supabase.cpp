@@ -198,13 +198,13 @@ struct Auth {
     if (result.has_error()) {
       return nullopt;
     }
-    Session session = result.value();
-    cpr::Response response = cpr::Post(
-        headers_with({{"authorization", "Bearer " + session.access_token}}),
-        logout_endpoint, empty_data, cpr_ctx.ssl);
+    cpr::Response response =
+        cpr::Post(headers_with({{"authorization",
+                                 "Bearer " + result.value().access_token}}),
+                  logout_endpoint, empty_data, cpr_ctx.ssl);
 
     // delete user and session
-    session = Session{};
+    session = Session();
     return nullopt;
   }
 
