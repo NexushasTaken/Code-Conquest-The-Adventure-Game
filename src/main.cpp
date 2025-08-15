@@ -10,7 +10,6 @@
 #include "raygui.h"
 #include "raylib.h"
 
-#define RAYLIB_NUKLEAR_IMPLEMENTATION
 #include "nuklear/raylib-nuklear.h"
 
 #include "supabase.cpp"
@@ -36,6 +35,7 @@ enum Page {
 
 struct GuiContext {
   nk_context *ctx;
+  Font font;
 
   char mail_buffer[256] = {0};
   int mail_max = 256;
@@ -52,6 +52,8 @@ struct GuiContext {
   bool do_sign_in = false;
   bool do_sign_up = false;
   bool do_logout = false;
+
+  struct nk_rect auth_win_rect;
 };
 
 void password_input(nk_context *ctx, char *pwd_buf, int *len, int max) {
@@ -71,10 +73,7 @@ void password_input(nk_context *ctx, char *pwd_buf, int *len, int max) {
 }
 
 void draw_sign_in_ui(GuiContext &ctx, Client &client) {
-  if (nk_begin(ctx.ctx, "Sign In",
-               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+  if (nk_begin(ctx.ctx, "Sign In", ctx.auth_win_rect,
                NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
                    NK_WINDOW_NO_SCROLLBAR)) {
     nk_layout_row_dynamic(ctx.ctx, 0, 1);
@@ -91,7 +90,7 @@ void draw_sign_in_ui(GuiContext &ctx, Client &client) {
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
     password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
 
-    nk_label(ctx.ctx, "...", NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign In")) {
       ctx.label = "Sign up was clicked!";
     }
@@ -106,10 +105,7 @@ void draw_sign_in_ui(GuiContext &ctx, Client &client) {
 }
 
 void draw_sign_up_ui(GuiContext &ctx, Client &client) {
-  if (nk_begin(ctx.ctx, "Sign Up",
-               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+  if (nk_begin(ctx.ctx, "Sign Up", ctx.auth_win_rect,
                NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
                    NK_WINDOW_NO_SCROLLBAR)) {
     nk_layout_row_dynamic(ctx.ctx, 0, 1);
@@ -126,7 +122,7 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
     password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
 
-    nk_label(ctx.ctx, "...", NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign up")) {
       ctx.label = "Sign up was clicked!";
     }
@@ -142,9 +138,7 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
 
 void draw_main_menu_ui(GuiContext &ctx, Client &client) {
   if (nk_begin(ctx.ctx, "Main Menu",
-               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+               ctx.auth_win_rect,
                NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
                    NK_WINDOW_NO_SCROLLBAR)) {
     nk_layout_row_dynamic(ctx.ctx, 0, 1);
@@ -160,10 +154,7 @@ void draw_main_menu_ui(GuiContext &ctx, Client &client) {
 }
 
 void draw_authentication(GuiContext &ctx, Client &client) {
-  if (nk_begin(ctx.ctx, "Choose how you want to Sign in",
-               nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                       SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                       SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0),
+  if (nk_begin(ctx.ctx, "Choose how you want to Sign in", ctx.auth_win_rect,
                NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
                    NK_WINDOW_NO_SCROLLBAR)) {
     nk_layout_row_dynamic(ctx.ctx, 0, 3);
@@ -266,6 +257,18 @@ void DrawFileBrowser(struct nk_context *ctx) {
   UnloadDirectoryFiles(files);
 }
 
+GuiContext create_gui_context() {
+  GuiContext ctx;
+
+  ctx.font = LoadFont("fonts/NotoSans-Regular.ttf");
+  ctx.ctx = InitNuklearEx(ctx.font, 20);
+
+  ctx.auth_win_rect = nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
+                         SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                         SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+  return ctx;
+}
+
 int main() {
   default_dir = GetWorkingDirectory();
   std::string api_key = SUPABASE_KEY;
@@ -296,10 +299,7 @@ int main() {
   }
 #endif
 
-  GuiContext ctx;
-
-  Font font = LoadFont("fonts/NotoSans-Regular.ttf");
-  ctx.ctx = InitNuklearEx(font, 20);
+  GuiContext ctx = create_gui_context();
 
   SetTargetFPS(60);
 

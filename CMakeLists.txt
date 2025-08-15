@@ -5,6 +5,8 @@ find_package(PkgConfig REQUIRED)
 
 set(SRCS
   ./src/main.cpp
+
+  ./src/nuklear/nuklear.c
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
