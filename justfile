@@ -8,7 +8,12 @@ configure-linux:
   ln -sf build-linux-cmake/compile_commands.json compile_commands.json
 
 configure-android:
-  cmake -B build-android-cmake -DPLATFORM=Android --fresh \
+  cmake -B build-android-cmake --fresh -DANDROID_PLATFORM=android-31 \
+    -DANDROID_TOOLCHAIN=clang \
+    -DANDROID_STL=c++_static \
+    -DANDROID_CPP_FEATURES=rtti exceptions \
+    -DPLATFORM=Android \
+    -DPACKAGE_NAME="com.raylib.game" \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
     -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"

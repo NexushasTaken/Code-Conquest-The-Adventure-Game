@@ -349,7 +349,7 @@ bool load_session(GuiContext &ctx, Client &client) {
 
   char *raw_session = LoadFileText(".data/session.json");
   json json_session = json::parse(raw_session);
-  auto result = client.auth.load_session(json_session);
+  auto result = client.auth.set_session(json_session);
   if (result.has_value()) {
     ctx.page = Menu;
   }
@@ -358,6 +358,12 @@ bool load_session(GuiContext &ctx, Client &client) {
 }
 
 int main() {
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
+#ifdef PLATFORM_ANDROID
+  SCREEN_WIDTH = GetScreenWidth();
+  SCREEN_HEIGHT = GetScreenHeight();
+#endif
+
   setup_environment();
   std::string api_key = SUPABASE_KEY;
   std::string api_url = SUPABASE_URL;
@@ -368,14 +374,7 @@ int main() {
   if (api_url.empty()) {
     TraceLog(LOG_FATAL, "%s", "supabaseUrl is required");
   }
-  curl_global_init(CURL_GLOBAL_DEFAULT);
   Client client(api_url, api_key);
-
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
-#ifdef PLATFORM_ANDROID
-  SCREEN_WIDTH = GetScreenWidth();
-  SCREEN_HEIGHT = GetScreenHeight();
-#endif
 
   GuiContext ctx = create_gui_context();
   load_session(ctx, client);
@@ -414,10 +413,8 @@ int main() {
     EndDrawing();
   }
 
-  UnloadNuklear(ctx.ctx);
-
-  CloseWindow();
-
   save_session(client);
+  UnloadNuklear(ctx.ctx);
+  CloseWindow();
   return 0;
 }

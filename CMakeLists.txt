@@ -10,9 +10,9 @@ set(SRCS
   ./src/nuklear/nuklear.c
 )
 
-set(CMAKE_CXX_STANDARD 23)          # Request C++23
+set(CMAKE_CXX_STANDARD 17)          # Request C++23
 set(CMAKE_CXX_STANDARD_REQUIRED ON) # Fail if not supported
-set(CMAKE_CXX_EXTENSIONS OFF)       # Use -std=c++23 instead of -std=gnu++23
+#set(CMAKE_CXX_EXTENSIONS OFF)       # Use -std=c++23 instead of -std=gnu++23
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -55,8 +55,6 @@ else()
   pkg_check_modules(CURL REQUIRED libcurl)
   pkg_check_modules(ZLIB REQUIRED zlib)
 endif()
-
-set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 
 add_library(lua STATIC ./externals/lua/src/lapi.c ./externals/lua/src/lcode.c ./externals/lua/src/lctype.c ./externals/lua/src/ldebug.c ./externals/lua/src/ldo.c ./externals/lua/src/ldump.c ./externals/lua/src/lfunc.c ./externals/lua/src/lgc.c ./externals/lua/src/llex.c ./externals/lua/src/lmem.c ./externals/lua/src/lobject.c ./externals/lua/src/lopcodes.c ./externals/lua/src/lparser.c ./externals/lua/src/lstate.c ./externals/lua/src/lstring.c ./externals/lua/src/ltable.c ./externals/lua/src/ltm.c ./externals/lua/src/lundump.c ./externals/lua/src/lvm.c ./externals/lua/src/lzio.c ./externals/lua/src/lauxlib.c ./externals/lua/src/lbaselib.c ./externals/lua/src/lcorolib.c ./externals/lua/src/ldblib.c ./externals/lua/src/liolib.c ./externals/lua/src/lmathlib.c ./externals/lua/src/loadlib.c ./externals/lua/src/loslib.c ./externals/lua/src/lstrlib.c ./externals/lua/src/ltablib.c ./externals/lua/src/lutf8lib.c ./externals/lua/src/linit.c)
 target_compile_definitions(lua PUBLIC LUA_COMPAT_5_3)

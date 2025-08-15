@@ -212,13 +212,16 @@ struct Auth {
   }
 
   bool check_auth() { return get_session().has_value(); }
-  User get_user() {
-    return session.user;
-  }
-  AuthResult load_session(json raw_session) {
+  User get_user() { return session.user; }
+
+  AuthResult set_session(json raw_session) {
     session = Session{raw_session};
     auto result = refresh_access_token();
     return result;
+  }
+
+  AuthResult set_session(std::string access_token, std::string refresh_token) {
+    return session;
   }
 
 private:
