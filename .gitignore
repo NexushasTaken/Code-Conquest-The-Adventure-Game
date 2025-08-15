@@ -21,6 +21,8 @@ src/com/raylib/game/R.java
 *.o
 .env
 assets/.data
+/app/src/main/cpp/deps/openssl
+/app/src/main/cpp/deps/curl
 
 
 ### Created by https://www.gitignore.io
