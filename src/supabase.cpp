@@ -8,6 +8,7 @@
 #include "result.hpp"
 #include "supabase/errorcodes.hpp"
 #include <chrono>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <regex.h>
@@ -46,6 +47,26 @@ struct User {
     is_anonymous = user.value<bool>("is_anonymous", false);
   }
 
+  json as_json() {
+    return json{
+        {"id", id},
+        {"aud", aud},
+        {"role", role},
+        {"email", email},
+        {"email_confirmed_at", email_confirmed_at},
+        {"phone", phone},
+        {"phone_confirmed_at", phone_confirmed_at},
+        {"confirmed_at", confirmed_at},
+        {"last_sign_in_at", last_sign_in_at},
+        {"app_metadata", app_metadata},
+        {"user_metadata", user_metadata},
+        {"identities", identities},
+        {"created_at", created_at},
+        {"updated_at", updated_at},
+        {"is_anonymous", is_anonymous},
+    };
+  }
+
   // clang-format off
   // https://supabase.com/docs/guides/auth/users#the-user-object
   std::string id;                 // string	The unique id of the identity of the user.
@@ -76,6 +97,14 @@ struct Session {
     expires_in = response.value("expires_in", 0);
     expires_at = response.value("expires_at", 0);
     token_type = response.value("token_type", "");
+  }
+
+  json as_json() {
+    return json{
+        {"access_token", access_token}, {"refresh_token", refresh_token},
+        {"expires_in", expires_in},     {"expires_at", expires_at},
+        {"token_type", token_type},     {"user", user.as_json()},
+    };
   }
 
   User user;
@@ -118,8 +147,6 @@ struct Auth {
     }
 
     json raw_response = json::parse(response.text);
-    std::cout << "sign_in_anonymously: "
-              << std::quoted(std::string(raw_response.dump(2))) << std::endl;
 
     return validate_auth_response(raw_response);
   }
@@ -136,8 +163,6 @@ struct Auth {
     }
 
     json raw_response = json::parse(response.text);
-    std::cout << "sign_up_email: "
-              << std::quoted(std::string(raw_response.dump(2))) << std::endl;
 
     return validate_auth_response(raw_response);
   }
@@ -154,8 +179,6 @@ struct Auth {
     }
 
     json raw_response = json::parse(response.text);
-    std::cout << "sign_in_email: "
-              << std::quoted(std::string(raw_response.dump(2))) << std::endl;
 
     return validate_auth_response(raw_response);
   }
@@ -169,12 +192,12 @@ struct Auth {
     cpr::Response response = cpr::Post(
         headers_with({{"authorization", "Bearer " + session.access_token}}),
         logout_endpoint, empty_data, cpr_ctx.ssl);
+
     // delete user and session
     session = Session{};
     return nullopt;
   }
 
-  bool check_auth() { return false; }
   optional<Session> get_session() {
     if (session.user.id.empty()) {
       return nullopt;
@@ -186,6 +209,16 @@ struct Auth {
     } else {
       return nullopt;
     }
+  }
+
+  bool check_auth() { return get_session().has_value(); }
+  User get_user() {
+    return session.user;
+  }
+  AuthResult load_session(json raw_session) {
+    session = Session{raw_session};
+    auto result = refresh_access_token();
+    return result;
   }
 
 private:

@@ -56,9 +56,11 @@ struct GuiContext {
 
   std::string sign_in_status;
   std::string sign_up_status;
-  std::string sign_in_anon_status;
+  std::string authenticate_status;
 
   struct nk_rect auth_win_rect;
+
+  bool request_exit = false;
 };
 
 void password_input(nk_context *ctx, std::string &pwd, int max) {
@@ -175,6 +177,9 @@ void draw_main_menu_ui(GuiContext &ctx, Client &client) {
       ctx.page = Authenticate;
       auto sign_out = client.auth.sign_out();
     }
+    if (nk_button_label(ctx.ctx, "Quit")) {
+      ctx.request_exit = true;
+    }
   }
   nk_end(ctx.ctx);
 }
@@ -200,13 +205,16 @@ void draw_authentication(GuiContext &ctx, Client &client) {
       auto sign_in = client.auth.sign_in_anonymously();
 
       if (sign_in.has_error()) {
-        ctx.sign_in_anon_status = sign_in.error().msg;
+        ctx.authenticate_status = sign_in.error().msg;
       } else {
         ctx.page = Menu;
       }
     }
+    if (nk_button_label(ctx.ctx, "Quit")) {
+      ctx.request_exit = true;
+    }
 
-    nk_label(ctx.ctx, ctx.sign_in_anon_status.c_str(), NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, ctx.authenticate_status.c_str(), NK_TEXT_CENTERED);
   }
   nk_end(ctx.ctx);
 }
@@ -317,6 +325,38 @@ void setup_environment() {
 #endif
 }
 
+void save_session(Client &client) {
+  auto session_result = client.auth.get_session();
+  if (!session_result.has_value()) {
+    return;
+  }
+
+  auto session = session_result.value();
+  if (session.user.is_anonymous) {
+    client.auth.sign_out();
+    return;
+  }
+
+  MakeDirectory(".data");
+  SaveFileText(".data/session.json",
+               const_cast<char *>(session.as_json().dump(2).c_str()));
+}
+
+bool load_session(GuiContext &ctx, Client &client) {
+  if (!FileExists(".data/session.json")) {
+    return false;
+  }
+
+  char *raw_session = LoadFileText(".data/session.json");
+  json json_session = json::parse(raw_session);
+  auto result = client.auth.load_session(json_session);
+  if (result.has_value()) {
+    ctx.page = Menu;
+  }
+
+  return result.has_value();
+}
+
 int main() {
   setup_environment();
   std::string api_key = SUPABASE_KEY;
@@ -338,12 +378,19 @@ int main() {
 #endif
 
   GuiContext ctx = create_gui_context();
+  load_session(ctx, client);
+  bool exit_window = false;
 
   SetTargetFPS(60);
 
   std::string label = "Waiting...";
 
-  while (!WindowShouldClose()) {
+  while (!exit_window) {
+    exit_window = WindowShouldClose();
+    if (ctx.request_exit) {
+      exit_window = true;
+    }
+
     UpdateNuklear(ctx.ctx);
 
     BeginDrawing();
@@ -371,6 +418,6 @@ int main() {
 
   CloseWindow();
 
-  curl_global_cleanup();
+  save_session(client);
   return 0;
 }
