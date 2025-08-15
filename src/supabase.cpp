@@ -32,21 +32,21 @@ struct User {
 
   // clang-format off
   // https://supabase.com/docs/guides/auth/users#the-user-object
-  std::string id; // 	string	The unique id of the identity of the user.
-  std::string aud; // 	string	The audience claim.
-  std::string role; // 	string	The role claim used by Postgres to perform Row Level Security (RLS) checks.
-  std::string email; // 	string	The user's email address.
-  std::string email_confirmed_at; // 	string	The timestamp that the user's email was confirmed. If null, it means that the user's email is not confirmed.
-  std::string phone; // 	string	The user's phone number.
-  std::string phone_confirmed_at; // 	string	The timestamp that the user's phone was confirmed. If null, it means that the user's phone is not confirmed.
-  std::string confirmed_at; // 	string	The timestamp that either the user's email or phone was confirmed. If null, it means that the user does not have a confirmed email address and phone number.
-  std::string last_sign_in_at; // 	string	The timestamp that the user last signed in.
-  json app_metadata; // 	object	The provider attribute indicates the first provider that the user used to sign up with. The providers attribute indicates the list of providers that the user can use to login with.
-  json user_metadata; // 	object	Defaults to the first provider's identity data but can contain additional custom user metadata if specified. Refer to User Identity for more information about the identity object.
-  json identities; // 	UserIdentity[]	Contains an object array of identities linked to the user.
-  std::string created_at; // 	string	The timestamp that the user was created.
-  std::string updated_at; // 	string	The timestamp that the user was last updated.
-  bool is_anonymous; // 	boolean	Is true if the user is an anonymous user.
+  std::string id;                 // string	The unique id of the identity of the user.
+  std::string aud;                // string	The audience claim.
+  std::string role;               // string	The role claim used by Postgres to perform Row Level Security (RLS) checks.
+  std::string email;              // string	The user's email address.
+  std::string email_confirmed_at; // string	The timestamp that the user's email was confirmed. If null, it means that the user's email is not confirmed.
+  std::string phone;              // string	The user's phone number.
+  std::string phone_confirmed_at; // string	The timestamp that the user's phone was confirmed. If null, it means that the user's phone is not confirmed.
+  std::string confirmed_at;       // string	The timestamp that either the user's email or phone was confirmed. If null, it means that the user does not have a confirmed email address and phone number.
+  std::string last_sign_in_at;    // string	The timestamp that the user last signed in.
+  json app_metadata;              // object	The provider attribute indicates the first provider that the user used to sign up with. The providers attribute indicates the list of providers that the user can use to login with.
+  json user_metadata;             // object	Defaults to the first provider's identity data but can contain additional custom user metadata if specified. Refer to User Identity for more information about the identity object.
+  json identities;                // UserIdentity[]	Contains an object array of identities linked to the user.
+  std::string created_at;         // string	The timestamp that the user was created.
+  std::string updated_at;         // string	The timestamp that the user was last updated.
+  bool is_anonymous;              // boolean	Is true if the user is an anonymous user.
   // clang-format on
 };
 
