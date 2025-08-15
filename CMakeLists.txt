@@ -6,8 +6,13 @@ find_package(PkgConfig REQUIRED)
 set(SRCS
   ./src/main.cpp
 
+  ./src/supabase/errorcodes.cpp
   ./src/nuklear/nuklear.c
 )
+
+set(CMAKE_CXX_STANDARD 23)          # Request C++23
+set(CMAKE_CXX_STANDARD_REQUIRED ON) # Fail if not supported
+set(CMAKE_CXX_EXTENSIONS OFF)       # Use -std=c++23 instead of -std=gnu++23
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

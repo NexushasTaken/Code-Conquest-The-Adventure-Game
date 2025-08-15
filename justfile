@@ -2,7 +2,9 @@ configure-linux:
   cmake -B build-linux-cmake -DPLATFORM=Desktop --fresh \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-    -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
+    -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++
   ln -sf build-linux-cmake/compile_commands.json compile_commands.json
 
 configure-android:
