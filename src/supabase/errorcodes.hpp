@@ -1,4 +1,5 @@
 #include "../global.hpp"
+#include "cpr/error.h"
 
 namespace supabase {
 enum struct ErrorCodes {
@@ -85,19 +86,27 @@ enum struct ErrorCodes {
   USER_SSO_MANAGED,
   VALIDATION_FAILED,
   WEAK_PASSWORD,
+
+  UNKNOWN_ERROR = 1000,
 };
 
+// An error wrapper that combines supabase and cpr error codes.
 struct ErrorCode {
+  enum struct Type { None, Network, Supabase };
   ErrorCode() = default;
   ErrorCode(json error);
+  ErrorCode(cpr::Error error);
+
+  std::string get_description();
 
   int code;
   std::string error_code;
   std::string msg;
 
-  ErrorCodes error;
+  ErrorCodes supabase_error_code = ErrorCodes::UNKNOWN_ERROR;
+  cpr::ErrorCode network_error_code = cpr::ErrorCode::UNKNOWN_ERROR;
 
-  std::string get_description(ErrorCodes error_code);
+  Type type = Type::None;
 private:
   static const std::map<ErrorCodes, std::string> error_code_descriptions;
   static const std::map<std::string, ErrorCodes> error_code_enums;

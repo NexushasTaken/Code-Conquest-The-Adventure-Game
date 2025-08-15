@@ -6,18 +6,40 @@
 
 namespace supabase {
 ErrorCode::ErrorCode(json error) {
-  code = error.value("code", 0);
-  error_code = error.value("error_code", "");
-  msg = error.value("msg", "");
+  this->error_code = error.value("error_code", "unknown_error");
+  this->msg = error.value("msg", "UNKNOWN_ERROR");
 
-  assert(error_code_enums.find(error_code) != error_code_enums.end());
-  error = error_code_enums.at(error_code);
+  assert(error_code_enums.find(this->error_code) != error_code_enums.end());
+  ErrorCodes error_code = error_code_enums.at(this->error_code);
+
+  this->code = (int)error_code;
+
+  this->supabase_error_code = error_code;
+  this->type = Type::Supabase;
 };
 
-std::string ErrorCode::get_description(ErrorCodes error_code) {
-  auto res = error_code_descriptions.find(error_code);
-  assert(res != error_code_descriptions.end());
-  return res->second;
+ErrorCode::ErrorCode(cpr::Error error) {
+  this->code = (int)error.code;
+  this->error_code = std::to_string(error.code);
+  this->msg = error.message;
+
+  this->network_error_code = error.code;
+  this->type = Type::Network;
+}
+
+std::string ErrorCode::get_description() {
+  assert(type != Type::None);
+
+  switch (type) {
+  case Type::None:
+    return "";
+  case Type::Network:
+    return std::to_string(network_error_code);
+  case Type::Supabase:
+    auto res = error_code_descriptions.find(supabase_error_code);
+    assert(res != error_code_descriptions.end());
+    return res->second;
+  }
 }
 
 // clang-format off
@@ -105,6 +127,7 @@ const std::map<ErrorCodes, std::string> ErrorCode::error_code_descriptions = {
   {ErrorCodes::USER_SSO_MANAGED, "When a user comes from SSO, certain fields of the user cannot be updated (like email)."},
   {ErrorCodes::VALIDATION_FAILED, "Provided parameters are not in the expected format."},
   {ErrorCodes::WEAK_PASSWORD, "User is signing up or changing their password without meeting the password strength criteria. Use the AuthWeakPasswordError class to access more information about what they need to do to make the password pass."},
+  {ErrorCodes::UNKNOWN_ERROR, "UNKNOWN_ERROR"},
 };
 
 const std::map<std::string, ErrorCodes> ErrorCode::error_code_enums = {
@@ -191,6 +214,7 @@ const std::map<std::string, ErrorCodes> ErrorCode::error_code_enums = {
   {"user_sso_managed", ErrorCodes::USER_SSO_MANAGED},
   {"validation_failed", ErrorCodes::VALIDATION_FAILED},
   {"weak_password", ErrorCodes::WEAK_PASSWORD},
+  {"unknown_error", ErrorCodes::UNKNOWN_ERROR},
 };
 // clang-format on
 } // namespace supabase

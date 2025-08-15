@@ -26,7 +26,6 @@ const int SCREEN_HEIGHT = 600;
 #endif
 
 using supabase::Client;
-using supabase::ErrorCode;
 
 enum Page {
   Authenticate,
@@ -99,7 +98,14 @@ void draw_sign_in_ui(GuiContext &ctx, Client &client) {
 
     nk_label(ctx.ctx, ctx.sign_in_status.c_str(), NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign In")) {
-      ctx.label = "Sign up was clicked!";
+      auto sign_up = client.auth.sign_in_email(
+          {ctx.mail_buffer, (unsigned long)ctx.mail_length}, ctx.pass);
+
+      if (sign_up.has_error()) {
+        ctx.sign_in_status = sign_up.error().msg;
+      } else {
+        ctx.page = Menu;
+      }
     }
 
     nk_layout_row_dynamic(ctx.ctx, 0, 3);
@@ -135,7 +141,9 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
           {ctx.mail_buffer, (unsigned long)ctx.mail_length}, ctx.pass);
 
       if (sign_up.has_error()) {
-        ctx.sign_up_status = sign_up.error().error_code;
+        ctx.sign_up_status = sign_up.error().msg;
+      } else {
+        ctx.page = Menu;
       }
     }
 
@@ -156,9 +164,16 @@ void draw_main_menu_ui(GuiContext &ctx, Client &client) {
 
     nk_label(ctx.ctx, "Main Menu", NK_TEXT_CENTERED);
 
-    nk_label(ctx.ctx, "Authentication status", NK_TEXT_CENTERED);
+    auto session = client.auth.get_session();
+    if (session->user.is_anonymous) {
+      nk_label(ctx.ctx, "Signed In as Anonymous", NK_TEXT_CENTERED);
+    } else {
+      nk_label(ctx.ctx, ("Signed In as " + session->user.email).c_str(),
+               NK_TEXT_CENTERED);
+    }
     if (nk_button_label(ctx.ctx, "Sign Out")) {
       ctx.page = Authenticate;
+      auto sign_out = client.auth.sign_out();
     }
   }
   nk_end(ctx.ctx);
@@ -185,7 +200,9 @@ void draw_authentication(GuiContext &ctx, Client &client) {
       auto sign_in = client.auth.sign_in_anonymously();
 
       if (sign_in.has_error()) {
-        ctx.sign_in_anon_status = sign_in.error().error_code;
+        ctx.sign_in_anon_status = sign_in.error().msg;
+      } else {
+        ctx.page = Menu;
       }
     }
 
