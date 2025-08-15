@@ -1,15 +1,28 @@
+#include "cpr/api.h"
 #include "cpr/cpr.h"
 #include "cpr/payload.h"
 #include "cpr/ssl_options.h"
 #include "global.hpp"
 #include "nlohmann/json.hpp"
 #include "raylib.h"
+#include "result.hpp"
+#include "supabase/errorcodes.hpp"
+#include <chrono>
 #include <iostream>
 #include <optional>
 #include <regex.h>
 #include <string>
 
 namespace supabase {
+template <typename T, typename E> struct Result {
+  T value;
+  E error;
+  bool ok;
+
+  static Result success(T v) { return {std::move(v), E{}, true}; }
+  static Result fail(E e) { return {T{}, std::move(e), false}; }
+};
+
 struct CprContext {
   CprContext() {
     if (FileExists("cacert.pem")) {
@@ -82,7 +95,6 @@ struct Session {
   int expires_at;
   std::string token_type;
 
-private:
   json response;
 };
 
@@ -93,40 +105,45 @@ struct AuthResponse {
   Session session;
 };
 
+using AuthResult = cpp::result<AuthResponse, ErrorCode>;
+
 struct Auth {
   Auth() = default;
-  Auth(CprContext cpr_ctx, cpr::Url auth_url, cpr::Header headers)
+  Auth(CprContext *cpr_ctx, cpr::Url auth_url, cpr::Header headers)
       : headers(headers), cpr_ctx(cpr_ctx) {
     endpoint = auth_url;
     signup_endpoint = auth_url + "/signup";
     logout_endpoint = auth_url + "/logout";
+    refresh_endpoint = auth_url + "/token?grant_type=refresh_token";
   }
 
-  AuthResponse sign_in_anonymously() {
+  AuthResult sign_in_anonymously() {
     cpr::Response response =
-        cpr::Post(headers, signup_endpoint, empty_data, cpr_ctx.ssl);
+        cpr::Post(headers, signup_endpoint, empty_data, cpr_ctx->ssl);
     json json_response = json::parse(response.text);
+    std::cout << std::quoted(json_response.dump(2)) << std::endl;
+    if (json_response.value("code", 0) == 422) {
+      return cpp::fail(ErrorCode(json_response));
+    }
 
     user = User{json_response["user"]};
     session = Session{json_response};
 
-    std::cout << user.id << std::endl;
-    std::cout << user.email << std::endl;
-    std::cout << user.role << std::endl;
-    std::cout << user.is_anonymous << std::endl;
-    std::cout << user.identities << std::endl;
-
     return AuthResponse(user, session);
   }
 
-  AuthResponse sign_up_email(std::string email, std::string password) {
-    cpr::Payload payload = {
+  AuthResult sign_up_email(std::string email, std::string password) {
+    json body = {
         {"email", email},
         {"password", password},
     };
-    cpr::Response response =
-        cpr::Post(headers, signup_endpoint, payload, cpr_ctx.ssl);
+    cpr::Response response = cpr::Post(headers, signup_endpoint,
+                                       cpr::Body{body.dump()}, cpr_ctx->ssl);
     json json_response = json::parse(response.text);
+    std::cout << std::quoted(json_response.dump(2)) << std::endl;
+    if (json_response.value("code", 0) == 422) {
+      return cpp::fail(ErrorCode(json_response));
+    }
 
     user = User{json_response["user"]};
     session = Session{json_response};
@@ -135,9 +152,12 @@ struct Auth {
   }
 
   void sign_out() {
-    auto jwt = session.access_token;
+    auto headers = this->headers;
+    refresh_access_token(session.refresh_token);
+    headers["authentication"] = "Bearer " + session.access_token;
+
     cpr::Response response =
-        cpr::Post(headers, logout_endpoint, empty_data, cpr_ctx.ssl);
+        cpr::Post(headers, logout_endpoint, empty_data, cpr_ctx->ssl);
 
     // delete user and session
     user = User{};
@@ -146,6 +166,27 @@ struct Auth {
 
   bool check_auth() { return false; }
 
+  bool refresh_access_token(std::string refresh_token) {
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto epoch = duration_cast<seconds>(now.time_since_epoch());
+
+    bool has_expired = session.expires_at <= epoch.count();
+    if (!has_expired) {
+      return false;
+    }
+
+    cpr::Response response = cpr::Post(headers, refresh_endpoint, cpr_ctx->ssl);
+
+    json json_response = json::parse(response.text);
+    std::cout << std::quoted(json_response.dump(2)) << std::endl;
+
+    user = User{json_response["user"]};
+    session = Session{json_response};
+
+    return true;
+  }
+
 private:
   User user;
   Session session;
@@ -153,13 +194,14 @@ private:
   cpr::Url endpoint;
   cpr::Url signup_endpoint;
   cpr::Url logout_endpoint;
+  cpr::Url refresh_endpoint;
 
   cpr::Response response;
 
   cpr::Body empty_data = "{}";
 
   cpr::Header headers;
-  CprContext cpr_ctx;
+  CprContext *cpr_ctx;
 };
 
 struct Client {
@@ -171,7 +213,7 @@ struct Client {
 
     auth_url = api_url + "/auth/v1";
 
-    auth = Auth(cpr_ctx, auth_url, headers);
+    auth = Auth(&cpr_ctx, auth_url, headers);
   }
 
   Auth auth;

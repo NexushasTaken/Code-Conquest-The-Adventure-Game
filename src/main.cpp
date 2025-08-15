@@ -1,5 +1,6 @@
 #include <cstring>
 #include <string>
+#include <variant>
 
 #define SOL_BUILD_CXX_MODE 1
 #define SOL_ALL_SAFETIES_ON 1
@@ -25,6 +26,7 @@ const int SCREEN_HEIGHT = 600;
 #endif
 
 using supabase::Client;
+using supabase::ErrorCode;
 
 enum Page {
   Authenticate,
@@ -37,7 +39,7 @@ struct GuiContext {
   nk_context *ctx;
   Font font;
 
-  char mail_buffer[256] = {0};
+  char mail_buffer[256];
   int mail_max = 256;
   int mail_length = 0;
 
@@ -52,6 +54,10 @@ struct GuiContext {
   bool do_sign_in = false;
   bool do_sign_up = false;
   bool do_logout = false;
+
+  std::string sign_in_status;
+  std::string sign_up_status;
+  std::string sign_in_anon_status;
 
   struct nk_rect auth_win_rect;
 };
@@ -91,7 +97,7 @@ void draw_sign_in_ui(GuiContext &ctx, Client &client) {
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
     password_input(ctx.ctx, ctx.pass, ctx.pass_max);
 
-    nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, ctx.sign_in_status.c_str(), NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign In")) {
       ctx.label = "Sign up was clicked!";
     }
@@ -123,10 +129,14 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
     password_input(ctx.ctx, ctx.pass, ctx.pass_max);
 
-    nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, ctx.sign_up_status.c_str(), NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign up")) {
-      client.auth.sign_up_email(
+      auto sign_up = client.auth.sign_up_email(
           {ctx.mail_buffer, (unsigned long)ctx.mail_length}, ctx.pass);
+
+      if (sign_up.has_error()) {
+        ctx.sign_up_status = sign_up.error().error_code;
+      }
     }
 
     nk_layout_row_dynamic(ctx.ctx, 0, 3);
@@ -165,20 +175,21 @@ void draw_authentication(GuiContext &ctx, Client &client) {
 
     if (nk_button_label(ctx.ctx, "Sign in")) {
       ctx.page = SignIn;
-      ctx.label = "Sign in was clicked!";
     }
 
     if (nk_button_label(ctx.ctx, "Sign up")) {
       ctx.page = SignUp;
-      ctx.label = "Sign up was clicked!";
     }
 
     if (nk_button_label(ctx.ctx, "Sign in as Anonymous")) {
-      client.auth.sign_in_anonymously();
-      ctx.label = "Signed in successfully";
+      auto sign_in = client.auth.sign_in_anonymously();
+
+      if (sign_in.has_error()) {
+        ctx.sign_in_anon_status = sign_in.error().error_code;
+      }
     }
 
-    nk_label(ctx.ctx, ctx.label.c_str(), NK_TEXT_CENTERED);
+    nk_label(ctx.ctx, ctx.sign_in_anon_status.c_str(), NK_TEXT_CENTERED);
   }
   nk_end(ctx.ctx);
 }
@@ -267,6 +278,9 @@ GuiContext create_gui_context() {
   ctx.auth_win_rect = nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
                               SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
                               SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+  std::strncpy(ctx.mail_buffer, "example@gmail.com", ctx.mail_max);
+  ctx.mail_length = std::strlen("example@gmail.com");
+  ctx.pass = "password";
   return ctx;
 }
 
