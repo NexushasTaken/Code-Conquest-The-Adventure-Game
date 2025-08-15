@@ -333,6 +333,10 @@ void setup_environment() {
 void save_session(Client &client) {
   auto session_result = client.auth.get_session();
   if (!session_result.has_value()) {
+    // TODO: Doing this indicates that the previous session has logged out.
+    if (FileExists(".data/session.json")) {
+      SaveFileText(".data/session.json", const_cast<char *>(""));
+    }
     return;
   }
 
@@ -353,6 +357,10 @@ bool load_session(GuiContext &ctx, Client &client) {
   }
 
   char *raw_session = LoadFileText(".data/session.json");
+  if (TextLength(raw_session) == 0) {
+    return false;
+  }
+
   json json_session = json::parse(raw_session);
   auto result = client.auth.set_session(json_session["access_token"],
                                         json_session["refresh_token"]);
