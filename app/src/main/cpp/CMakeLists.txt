@@ -3,10 +3,16 @@
 
 # Set the minimum required version of CMake
 cmake_minimum_required(VERSION 3.12)
+find_package(PkgConfig REQUIRED)
 
 # Set standards for C and C++
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT APP_LIB_NAME)
+  set(APP_LIB_NAME "main")
+endif()
 
 # Set the project name based on the name given on the gradle.properties
 project("${APP_LIB_NAME}")
@@ -60,7 +66,7 @@ endif()
 
 # Apply flags depending on the build type
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    target_compile_definitions(${APP_LIB_NAME} PRIVATE _DEBUG DEBUG)
+  target_compile_definitions(${APP_LIB_NAME} PRIVATE _DEBUG DEBUG)
 endif()
 
 add_library(lua STATIC ${CMAKE_SOURCE_DIR}/deps/lua/src/lapi.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lcode.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lctype.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ldebug.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ldo.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ldump.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lfunc.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lgc.c ${CMAKE_SOURCE_DIR}/deps/lua/src/llex.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lmem.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lobject.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lopcodes.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lparser.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lstate.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lstring.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ltable.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ltm.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lundump.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lvm.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lzio.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lauxlib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lbaselib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lcorolib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ldblib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/liolib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lmathlib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/loadlib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/loslib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lstrlib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/ltablib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/lutf8lib.c ${CMAKE_SOURCE_DIR}/deps/lua/src/linit.c)
