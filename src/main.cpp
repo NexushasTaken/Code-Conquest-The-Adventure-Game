@@ -40,9 +40,9 @@ struct GuiContext {
   char mail_buffer[256] = {0};
   int mail_max = 256;
   int mail_length = 0;
-  char pass_buffer[256] = {0};
+
+  std::string pass;
   int pass_max = 256;
-  int pass_length = 0;
   bool secret = true;
 
   std::string label;
@@ -56,20 +56,21 @@ struct GuiContext {
   struct nk_rect auth_win_rect;
 };
 
-void password_input(nk_context *ctx, char *pwd_buf, int *len, int max) {
-  char *buf = new char[max];
-  memset(buf, '*', *len);
-  buf[*len] = 0;
+void password_input(nk_context *ctx, std::string &pwd, int max) {
+  std::string buf(pwd.size(), '*');
+  buf.resize(max, '\0');
 
-  int old_len = *len;
-  nk_edit_string(ctx, NK_EDIT_SIMPLE, buf, len, max, nk_filter_default);
+  int len = static_cast<int>(pwd.size());
+  int old_len = len;
 
-  if (old_len < *len) {
-    memcpy(&pwd_buf[old_len], &buf[old_len], (nk_size)(*len - old_len));
-  } else if (old_len > *len) {
-    pwd_buf[*len] = 0;
+  nk_edit_string(ctx, NK_EDIT_SIMPLE, buf.data(), &len, max, nk_filter_default);
+
+  if (len > old_len) {
+    pwd.append(buf, old_len, len - old_len);
+    std::cout << std::quoted(pwd) << std::endl;
+  } else if (len < old_len) {
+    pwd.erase(len);
   }
-  delete[] buf;
 }
 
 void draw_sign_in_ui(GuiContext &ctx, Client &client) {
@@ -88,7 +89,7 @@ void draw_sign_in_ui(GuiContext &ctx, Client &client) {
                    nk_filter_default);
 
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
-    password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
+    password_input(ctx.ctx, ctx.pass, ctx.pass_max);
 
     nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign In")) {
@@ -120,12 +121,12 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
                    nk_filter_default);
 
     nk_label(ctx.ctx, "Password", NK_TEXT_CENTERED);
-    password_input(ctx.ctx, ctx.pass_buffer, &ctx.pass_length, ctx.pass_max);
+    password_input(ctx.ctx, ctx.pass, ctx.pass_max);
 
     nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign up")) {
-      client.auth.sign_up_email({ctx.mail_buffer, (unsigned long)ctx.mail_length},
-                                {ctx.pass_buffer, (unsigned long)ctx.pass_length});
+      client.auth.sign_up_email(
+          {ctx.mail_buffer, (unsigned long)ctx.mail_length}, ctx.pass);
     }
 
     nk_layout_row_dynamic(ctx.ctx, 0, 3);
