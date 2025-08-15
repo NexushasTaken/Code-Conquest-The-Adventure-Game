@@ -19,7 +19,7 @@ apply plugin: "com.android.application"
 
 android {
   namespace = "com.raylib.game"
-  ndkVersion "25.1.8937393"
+  ndkVersion "28.2.13676358"
   compileSdkVersion = 31
   buildToolsVersion = "36.0.0"
 
