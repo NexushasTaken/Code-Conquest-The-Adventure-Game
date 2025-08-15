@@ -124,7 +124,8 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
 
     nk_label(ctx.ctx, "", NK_TEXT_CENTERED);
     if (nk_button_label(ctx.ctx, "Sign up")) {
-      ctx.label = "Sign up was clicked!";
+      client.auth.sign_up_email({ctx.mail_buffer, (unsigned long)ctx.mail_length},
+                                {ctx.pass_buffer, (unsigned long)ctx.pass_length});
     }
 
     nk_layout_row_dynamic(ctx.ctx, 0, 3);
@@ -137,8 +138,7 @@ void draw_sign_up_ui(GuiContext &ctx, Client &client) {
 }
 
 void draw_main_menu_ui(GuiContext &ctx, Client &client) {
-  if (nk_begin(ctx.ctx, "Main Menu",
-               ctx.auth_win_rect,
+  if (nk_begin(ctx.ctx, "Main Menu", ctx.auth_win_rect,
                NK_WINDOW_BORDER | NK_WINDOW_SCALABLE |
                    NK_WINDOW_NO_SCROLLBAR)) {
     nk_layout_row_dynamic(ctx.ctx, 0, 1);
@@ -264,13 +264,29 @@ GuiContext create_gui_context() {
   ctx.ctx = InitNuklearEx(ctx.font, 20);
 
   ctx.auth_win_rect = nk_rect(SCREEN_WIDTH / 2.0 - SCREEN_WIDTH / 2.0 / 2.0,
-                         SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
-                         SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
+                              SCREEN_HEIGHT / 2.0 - SCREEN_HEIGHT / 2.0 / 2.0,
+                              SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0);
   return ctx;
 }
 
-int main() {
+void setup_environment() {
   default_dir = GetWorkingDirectory();
+#ifdef PLATFORM_DESKTOP
+  ChangeDirectory("assets");
+#elif PLATFORM_ANDROID
+  {
+    std::string data_dir = std::string("/data/data/") + PACKAGE_NAME + "/files";
+    ChangeDirectory(data_dir.c_str());
+
+    char *data = LoadFileText("cacert.pem");
+    SaveFileText("cacert.pem", data);
+    log_win.Add(std::string(data));
+  }
+#endif
+}
+
+int main() {
+  setup_environment();
   std::string api_key = SUPABASE_KEY;
   std::string api_url = SUPABASE_URL;
 
@@ -284,19 +300,9 @@ int main() {
   Client client(api_url, api_key);
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello, World");
-#ifdef PLATFORM_DESKTOP
-  ChangeDirectory("assets");
-#elif PLATFORM_ANDROID
-  {
-    SCREEN_WIDTH = GetScreenWidth();
-    SCREEN_HEIGHT = GetScreenHeight();
-    std::string data_dir = std::string("/data/data/") + PACKAGE_NAME + "/files";
-    ChangeDirectory(data_dir.c_str());
-
-    char *data = LoadFileText("cacert.pem");
-    SaveFileText("cacert.pem", data);
-    log_win.Add(std::string(data));
-  }
+#ifdef PLATFORM_ANDROID
+  SCREEN_WIDTH = GetScreenWidth();
+  SCREEN_HEIGHT = GetScreenHeight();
 #endif
 
   GuiContext ctx = create_gui_context();

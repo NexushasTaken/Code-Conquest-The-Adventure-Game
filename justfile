@@ -37,7 +37,7 @@ run-linux-make: build-linux-make
   ./build-linux/game
 
 debug-linux-cmake: build-linux-cmake
-  gdb ./build-linux/main
+  gdb ./build-linux-cmake/main
 
 debug-linux-make: build-linux-make
   gdb ./build-linux/game

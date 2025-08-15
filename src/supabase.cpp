@@ -1,18 +1,30 @@
-#include <iostream>
-#include <string>
 #include "cpr/cpr.h"
+#include "cpr/payload.h"
+#include "cpr/ssl_options.h"
+#include "global.hpp"
 #include "nlohmann/json.hpp"
-
-using json = nlohmann::json;
+#include "raylib.h"
+#include <iostream>
+#include <optional>
+#include <regex.h>
+#include <string>
 
 namespace supabase {
+struct CprContext {
+  CprContext() {
+    if (FileExists("cacert.pem")) {
+      ssl = cpr::Ssl(cpr::ssl::CaInfo{"cacert.pem"});
+    } else {
+      ssl = cpr::Ssl(cpr::ssl::MaxTLSVersion{});
+    }
+  }
+
+  cpr::SslOptions ssl;
+};
+
 struct User {
   User() = default;
-  User(cpr::Response response) {
-    json body = json::parse(response.text);
-    std::cout << body.dump(2) << std::endl;
-
-    json user = body["user"];
+  User(json user) {
     id = user.value("id", "");
     aud = user.value("aud", "");
     role = user.value("role", "");
@@ -50,15 +62,41 @@ struct User {
   // clang-format on
 };
 
+struct Session {
+  Session() = default;
+  Session(json response) : response(response) {
+    user = User{response["user"]};
+
+    access_token = response.value("access_token", "");
+    refresh_token = response.value("refresh_token", "");
+    expires_in = response.value("expires_in", 0);
+    expires_at = response.value("expires_at", 0);
+    token_type = response.value("token_type", "");
+  }
+
+  User user;
+
+  std::string access_token;
+  std::string refresh_token;
+  int expires_in;
+  int expires_at;
+  std::string token_type;
+
+private:
+  json response;
+};
+
 struct AuthResponse {
   AuthResponse() = default;
-  AuthResponse(User user) : user(user) {}
+  AuthResponse(User user, Session session) : user(user), session(session) {}
   User user;
+  Session session;
 };
 
 struct Auth {
   Auth() = default;
-  Auth(cpr::Url auth_url, cpr::Header headers) : headers(headers) {
+  Auth(CprContext cpr_ctx, cpr::Url auth_url, cpr::Header headers)
+      : headers(headers), cpr_ctx(cpr_ctx) {
     endpoint = auth_url;
     signup_endpoint = auth_url + "/signup";
     logout_endpoint = auth_url + "/logout";
@@ -66,11 +104,11 @@ struct Auth {
 
   AuthResponse sign_in_anonymously() {
     cpr::Response response =
-        cpr::Post(headers, signup_endpoint, empty_data,
-                  cpr::Ssl(cpr::ssl::CaInfo{"cacert.pem"}));
+        cpr::Post(headers, signup_endpoint, empty_data, cpr_ctx.ssl);
+    json json_response = json::parse(response.text);
 
-    user = User{response};
-    session = json::parse(response.text);
+    user = User{json_response["user"]};
+    session = Session{json_response};
 
     std::cout << user.id << std::endl;
     std::cout << user.email << std::endl;
@@ -78,28 +116,39 @@ struct Auth {
     std::cout << user.is_anonymous << std::endl;
     std::cout << user.identities << std::endl;
 
-    return AuthResponse(user);
+    return AuthResponse(user, session);
+  }
+
+  AuthResponse sign_up_email(std::string email, std::string password) {
+    cpr::Payload payload = {
+        {"email", email},
+        {"password", password},
+    };
+    cpr::Response response =
+        cpr::Post(headers, signup_endpoint, payload, cpr_ctx.ssl);
+    json json_response = json::parse(response.text);
+
+    user = User{json_response["user"]};
+    session = Session{json_response};
+
+    return AuthResponse(user, session);
   }
 
   void sign_out() {
-    auto jwt = session["access_token"];
-    cpr::Response response = cpr::Post(headers, logout_endpoint, empty_data);
-    std::cout << "raw_header: " << response.raw_header << std::endl;
-    std::cout << "text: " << response.text << std::endl;
-    std::cout << "url: " << response.url << std::endl;
-    std::cout << "reason: " << response.reason << std::endl;
+    auto jwt = session.access_token;
+    cpr::Response response =
+        cpr::Post(headers, logout_endpoint, empty_data, cpr_ctx.ssl);
 
-    session = json::parse(response.text);
-
+    // delete user and session
     user = User{};
-    session = json{};
+    session = Session{};
   }
 
   bool check_auth() { return false; }
 
 private:
   User user;
-  json session;
+  Session session;
 
   cpr::Url endpoint;
   cpr::Url signup_endpoint;
@@ -107,9 +156,10 @@ private:
 
   cpr::Response response;
 
-  cpr::Body empty_data{"{}"};
+  cpr::Body empty_data = "{}";
 
   cpr::Header headers;
+  CprContext cpr_ctx;
 };
 
 struct Client {
@@ -121,7 +171,7 @@ struct Client {
 
     auth_url = api_url + "/auth/v1";
 
-    auth = Auth(auth_url, headers);
+    auth = Auth(cpr_ctx, auth_url, headers);
   }
 
   Auth auth;
@@ -132,5 +182,6 @@ private:
   cpr::Url auth_url;
 
   cpr::Header headers;
+  CprContext cpr_ctx;
 };
 } // namespace supabase
