@@ -56,6 +56,10 @@ if(PLATFORM STREQUAL "Android")
   target_include_directories(${APP_LIB_NAME} PUBLIC ${OPENSSL_INCLUDE_DIR})
   target_link_directories(${APP_LIB_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/deps/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/)
   target_link_libraries(${APP_LIB_NAME} PUBLIC ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+
+  add_subdirectory(${CMAKE_SOURCE_DIR}/deps/raymob)
+  target_include_directories(${APP_LIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/deps/raymob")
+  target_link_libraries(${APP_LIB_NAME} PUBLIC raymoblib)
 else()
   add_executable(${APP_LIB_NAME} ${SOURCES})
 
@@ -98,10 +102,6 @@ target_link_libraries(${APP_LIB_NAME} PUBLIC jwt-cpp)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cpr)
 target_link_libraries(${APP_LIB_NAME} PUBLIC cpr::cpr)
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/deps/raymob)
-target_include_directories(${APP_LIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/deps/raymob")
-target_link_libraries(${APP_LIB_NAME} PUBLIC raymoblib)
 
 file(READ "${CMAKE_SOURCE_DIR}/.env" DOTENV)
 
