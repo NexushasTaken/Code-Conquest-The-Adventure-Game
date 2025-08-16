@@ -10,8 +10,9 @@ configure-linux:
     -DCMAKE_CXX_COMPILER=clang++
   ln -sf {{original_cwd}}/build-linux-cmake/compile_commands.json {{original_cwd}}/compile_commands.json
 
+[working-directory: "./app/src/main/cpp/"]
 configure-android:
-  cmake -B build-android-cmake --fresh -DANDROID_PLATFORM=android-31 \
+  cmake -B {{original_cwd}}/build-android-cmake --fresh -DANDROID_PLATFORM=android-31 \
     -DANDROID_TOOLCHAIN=clang \
     -DANDROID_STL=c++_static \
     -DANDROID_CPP_FEATURES=rtti exceptions \
@@ -20,6 +21,11 @@ configure-android:
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
     -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold"
+  ln -sf {{original_cwd}}/build-android-cmake/compile_commands.json {{original_cwd}}/compile_commands.json
+
+use-android-compile-cmd:
+  ln -sf ./app/.cxx/tools/debug/armeabi-v7a/compile_commands.json compile_commands.json
+use-linux-compile-cmd:
   ln -sf build-android-cmake/compile_commands.json compile_commands.json
 
 build-linux-cmake:
